@@ -39,14 +39,17 @@
                 <label class="text-xs text-zinc-400 font-bold uppercase block mb-1">Час раунду (сек)</label>
                 <input type="number" id="input-round-time" value="180" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-blue-500">
             </div>
+            
+            <!-- Міняємо місцями: спочатку Рух, потім Вибух -->
             <div>
-                <label class="text-xs text-zinc-400 font-bold uppercase block mb-1">Вибух ⚡ (сек)</label>
-                <input type="number" id="input-fast-time" value="20" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-blue-500">
-            </div>
-            <div>
-                <label class="text-xs text-zinc-400 font-bold uppercase block mb-1">Рух 🏃‍♂️ (сек)</label>
+                <label class="text-xs text-zinc-400 font-bold uppercase block mb-1">🏃‍♂️ Рух (сек)</label>
                 <input type="number" id="input-slow-time" value="30" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-blue-500">
             </div>
+            <div>
+                <label class="text-xs text-zinc-400 font-bold uppercase block mb-1">⚡ Вибух (сек)</label>
+                <input type="number" id="input-fast-time" value="20" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-blue-500">
+            </div>
+
             <div class="col-span-2">
                 <label class="text-xs text-zinc-400 font-bold uppercase block mb-1">Відпочинок між раундами (сек)</label>
                 <input type="number" id="input-rest-time" value="60" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-blue-500">
@@ -91,10 +94,16 @@
             }
         }
 
-        // Потужний довгий ГОНГ
+        // ============================================================
+        // НОВИЙ ПОТУЖНИЙ ДОВГИЙ ГОНГ (Long Bell) - як у справжньому боксі
+        // ============================================================
         function playGong() { 
-            playBeep(210, 0.9, "sawtooth", 0.5); 
-            setTimeout(() => playBeep(215, 0.9, "sine", 0.5), 60); 
+            // Основний низький гулкий удар
+            playBeep(130, 2.0, "sawtooth", 0.6); 
+            // Обертон для ефекту вібрації металу
+            setTimeout(() => playBeep(165, 1.8, "sine", 0.3), 100); 
+            // Легке дзеленчання на затуханні
+            setTimeout(() => playBeep(110, 1.2, "triangle", 0.2), 400); 
         }
 
         // 1 різкий свисток (Вибух)
@@ -125,7 +134,7 @@
         }
 
         async function startTraining() {
-            // Крок 1: Будимо аудіо та блокуємо екран ОДРАЗУ при натисканні користувачем
+            // Будимо аудіо та блокуємо екран
             initAudio();
             await requestWakeLock();
 
@@ -145,7 +154,7 @@
             const timerDisplay = document.getElementById('timer-display');
             const totalTimeDisplay = document.getElementById('total-time');
 
-            // Крок 2: Фаза підготовки (Затримка 5 секунд, щоб заграв звук)
+            // Фаза підготовки (Затримка 5 секунд)
             let prepareTimeLeft = 5;
             statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-prepare";
             roundTitle.innerText = "ПІДГОТОВКА";
@@ -157,7 +166,6 @@
                     playAlert();
                     prepareTimeLeft--;
                 } else {
-                    // Затримка пройшла — зупиняємо цей інтервал і запускаємо головний таймер
                     clearInterval(timerInterval);
                     runMainWorkoutLoop(totalRounds, roundDuration, fastDuration, slowDuration, restDuration);
                 }
@@ -173,15 +181,15 @@
 
             let currentRound = 1;
             let isRestPhase = false;
-            let isFastSubPhase = false; // Починаємо СУТО з легкого руху
+            let isFastSubPhase = false; // ПОЧИНАЄМО З РУХУ (false = повільний)
             
             let roundTimeLeft = roundDuration;
-            let subPhaseTimeLeft = slowDuration; // Перший відрізок часу — легка робота
+            let subPhaseTimeLeft = slowDuration; // Перший відрізок — це РУХ
 
-            // ПЕРШИЙ ГОНГ РАУНДУ ГРАЄ ТУТ
+            // ДОВГИЙ ГОНГ НА ПОЧАТОК РАУНДУ
             playGong();
 
-            // Одразу малюємо початковий стан на екрані (Зелений)
+            // Малюємо початковий стан (Зелений - РУХ)
             statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-slow";
             roundTitle.innerText = `Раунд ${currentRound} / ${totalRounds}`;
             phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
@@ -200,7 +208,7 @@
                         if (subPhaseTimeLeft < 3 && subPhaseTimeLeft > 0) playAlert();
                     }
 
-                    // Перемикання фаз всередині раунду
+                    // Перемикання фаз всередині раунду (Рух -> Вибух -> Рух -> ...)
                     if (subPhaseTimeLeft < 0 && roundTimeLeft > 0) {
                         isFastSubPhase = !isFastSubPhase;
                         subPhaseTimeLeft = isFastSubPhase ? fastDuration : slowDuration;
@@ -208,11 +216,11 @@
                         if (isFastSubPhase) {
                             statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-fast";
                             phaseTitle.innerText = "🔥 ВИБУХ (ШВИДКО) 🔥";
-                            playOneWhistle(); // 1 свисток на вибух
+                            playOneWhistle(); // 1 свисток
                         } else {
                             statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-slow";
                             phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
-                            playTwoWhistles(); // 2 свистки на рух
+                            playTwoWhistles(); // 2 свистки
                         }
                         timerDisplay.innerText = formatTime(subPhaseTimeLeft);
                     }
@@ -226,7 +234,7 @@
                             phaseTitle.innerText = "Тренування завершено!";
                             timerDisplay.innerText = "00:00";
                             totalTimeDisplay.innerText = "Красава!";
-                            playGong(); // Фінальний ГОНГ
+                            playGong(); // Фінальний ДОВГИЙ ГОНГ
                             resetUI();
                         } else {
                             isRestPhase = true;
@@ -236,7 +244,7 @@
                             phaseTitle.innerText = `Підготовка до раунду ${currentRound + 1}`;
                             timerDisplay.innerText = formatTime(subPhaseTimeLeft);
                             totalTimeDisplay.innerText = "Відновлюйте дихання";
-                            playGong(); // ГОНГ на перерву
+                            playGong(); // ДОВГИЙ ГОНГ на перерву
                         }
                     }
                 } else {
@@ -251,7 +259,7 @@
                         isRestPhase = false;
                         currentRound++;
                         roundTimeLeft = roundDuration;
-                        isFastSubPhase = false; // Новий раунд знову починається з легкого руху
+                        isFastSubPhase = false; // Новий раунд знову починається з РУХУ
                         subPhaseTimeLeft = slowDuration;
 
                         statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-slow";
@@ -260,7 +268,7 @@
                         timerDisplay.innerText = formatTime(subPhaseTimeLeft);
                         totalTimeDisplay.innerText = `Залишок раунду: ${formatTime(roundTimeLeft)}`;
                         
-                        playGong(); // ГОНГ на старт нового раунду
+                        playGong(); // ДОВГИЙ ГОНГ на старт нового раунду
                     }
                 }
             }, 1000);
@@ -289,3 +297,5 @@
             navigator.serviceWorker.register('sw.js');
         }
     </script>
+</body>
+</html>
