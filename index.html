@@ -61,23 +61,46 @@
     </div>
 
     <script>
-        // Генератор синтетичного звуку (щоб не завантажувати сторонні mp3 файли)
+        // Генератор звуків
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playBeep(frequency, duration, type="sine") {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.value = frequency;
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
+        
+        function playBeep(frequency, duration, type="sine", volume=0.3) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.value = frequency;
+                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.log("Помилка відтворення звуку:", e);
+            }
         }
 
-        function playGong() { playBeep(220, 0.8, "sawtooth"); setTimeout(() => playBeep(225, 0.8, "sine"), 50); }
-        function playAlert() { playBeep(880, 0.15, "sine"); }
+        // Низький і потужний звук гонгу
+        function playGong() { 
+            playBeep(200, 0.8, "sawtooth", 0.4); 
+            setTimeout(() => playBeep(205, 0.8, "sine", 0.4), 80); 
+        }
+
+        // 1 свисток (високий різкий звук для вибуху)
+        function playOneWhistle() {
+            playBeep(1200, 0.4, "triangle", 0.5);
+        }
+
+        // 2 свистки (для повернення в легкий рух)
+        function playTwoWhistles() {
+            playBeep(1200, 0.25, "triangle", 0.5);
+            setTimeout(() => playBeep(1200, 0.25, "triangle", 0.5), 350);
+        }
+
+        // Попереджувальні тихі піки за 3 секунди до зміни фази
+        function playAlert() { playBeep(600, 0.1, "sine", 0.2); }
 
         let timerInterval = null;
         let wakeLock = null;
@@ -88,7 +111,6 @@
             return `${m}:${s}`;
         }
 
-        // Захист екрану від згасання (Wake Lock)
         async function requestWakeLock() {
             try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
         }
@@ -120,11 +142,11 @@
             const timerDisplay = document.getElementById('timer-display');
             const totalTimeDisplay = document.getElementById('total-time');
 
+            // Початок першого раунду — ГОНГ
             playGong();
 
             timerInterval = setInterval(() => {
                 if (!isRestPhase) {
-                    // Логіка роботи всередині раунду
                     roundTitle.innerText = `Раунд ${currentRound} / ${totalRounds}`;
                     totalTimeDisplay.innerText = `Залишок раунду: ${formatTime(roundTimeLeft)}`;
 
@@ -147,28 +169,32 @@
                         // Перемикання мікро-фаз всередині раунду
                         isFastSubPhase = !isFastSubPhase;
                         subPhaseTimeLeft = isFastSubPhase ? fastDuration : slowDuration;
-                        playGong();
+                        
+                        // Звукове сповіщення залежно від фази
+                        if (isFastSubPhase) {
+                            playOneWhistle(); // 1 свисток на вибух
+                        } else {
+                            playTwoWhistles(); // 2 свистки на легкий рух
+                        }
                     }
 
                     if (roundTimeLeft < 0) {
                         // Раунд закінчився
                         if (currentRound >= totalRounds) {
-                            // Кінець усього тренування
                             clearInterval(timerInterval);
                             statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-prepare";
                             roundTitle.innerText = "🏆 КІНЕЦЬ 🏆";
                             phaseTitle.innerText = "Тренування завершено!";
                             timerDisplay.innerText = "00:00";
+                            playGong(); // Фінальний ГОНГ
                             resetUI();
                         } else {
-                            // Перехід на великий відпочинок між раундами
                             isRestPhase = true;
                             subPhaseTimeLeft = restDuration;
-                            playGong();
+                            playGong(); // ГОНГ на велику перерву
                         }
                     }
                 } else {
-                    // Логіка відпочинку між раундами
                     statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-rest";
                     roundTitle.innerText = `ВІДПОЧИНОК`;
                     phaseTitle.innerText = `Підготовка до раунду ${currentRound + 1}`;
@@ -185,7 +211,7 @@
                         roundTimeLeft = roundDuration;
                         isFastSubPhase = true;
                         subPhaseTimeLeft = fastDuration;
-                        playGong();
+                        playGong(); // ГОНГ на початок нового раунду
                     }
                 }
             }, 1000);
@@ -209,10 +235,7 @@
             document.getElementById('btn-stop').classList.add('hidden');
         }
 
-        // Реєстрація Service Worker для PWA роботи офлайн
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
     </script>
-</body>
-</html>
