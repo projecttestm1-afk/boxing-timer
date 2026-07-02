@@ -91,23 +91,25 @@
             } catch (e) { console.log("Audio error:", e); }
         }
 
-        // 1. Металевий ГОНГ для рингу (Акорд)
+        // 1. Металевий ГОНГ — додано глибини базовому удару та чистоти відлунню
         function playGong() {
-            playSound(261.63, 3.5, "sawtooth", 0.6); // Основа
-            setTimeout(() => playSound(329.63, 3.0, "sine", 0.4), 30); // Резонанс
-            setTimeout(() => playSound(392.00, 2.5, "sine", 0.3), 60); // Відлуння
-            setTimeout(() => playSound(659.25, 1.5, "triangle", 0.15), 100); // Металевий дзвін
+            playSound(261.63, 3.8, "sawtooth", 0.5); // Базовий металевий удар (чуть тихіше, щоб не рипів)
+            setTimeout(() => playSound(329.63, 3.5, "sine", 0.5), 25);  // Об'ємний гул
+            setTimeout(() => playSound(392.00, 3.0, "sine", 0.4), 50);  // Гармоніка
+            setTimeout(() => playSound(523.25, 2.0, "triangle", 0.3), 80); // Яскравий верхній дзвін (До 5-ї октави)
         }
 
-        // 2. Суддівський свисток (Вибух/Рух)
+        // 2. Суддівський свисток — звучить довше (0.7 сек) та реалістичніше за рахунок різниці частот
         function playWhistle() {
-            playSound(2200, 0.4, "triangle", 0.5, 2000); 
-            setTimeout(() => playSound(2300, 0.4, "sine", 0.4, 2100), 20);
+        // Перший пронизливий тон із падінням частоти
+            playSound(2100, 0.7, "triangle", 0.4, 1900); 
+        // Другий тон зсунутий на 50 Гц — це створює природний ефект "хрипоти" та вібрації кульки
+            setTimeout(() => playSound(2150, 0.65, "sine", 0.3, 1950), 15);
         }
         function playOneWhistle() { playWhistle(); }
         function playTwoWhistles() {
             playWhistle();
-            setTimeout(playWhistle, 300);
+            setTimeout(playWhistle, 800);
         }
 
         // 3. Відсічка 10 секунд (Удар паличками)
