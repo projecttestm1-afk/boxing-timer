@@ -63,65 +63,71 @@
     </div>
 
     <script>
-        // ==================== АУДІО ДВИЖОК ====================
-        let audioCtx = null;
-        function initAudio() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+        // ==================== АУДІО ДВИЖОК (РЕАЛЬНІ ФАЙЛИ) ====================
+        // Кладіть свої mp3-файли у папку /sounds поруч з index.html
+        // Точні назви файлів, які очікує цей код:
+        const SOUND_FILES = {
+            gong:     'sounds/gong.mp3',      // Удар гонгу — старт раунду / відпочинку / фініш
+            whistle:  'sounds/whistle.mp3',   // Суддівський свисток — перемикання рух/вибух
+            warning:  'sounds/warning.mp3',   // Коротка відсічка за 10 сек до кінця раунду
+            tick:     'sounds/tick.mp3'       // Короткий "пік" для відліку підготовки/відпочинку
+        };
+
+        // Кеш готових Audio-об'єктів (щоб не створювати їх щоразу заново)
+        const audioCache = {};
+        let audioUnlocked = false;
+
+        function preloadSounds() {
+            Object.entries(SOUND_FILES).forEach(([key, src]) => {
+                const audio = new Audio(src);
+                audio.preload = 'auto';
+                audioCache[key] = audio;
+            });
         }
 
-        function playSound(freq, dur, type = "sine", vol = 0.5, slideFreq = null) {
+        // iOS/Android блокують автоплей звуку, поки не буде явного жесту користувача.
+        // Тому "розблоковуємо" аудіо прямо в обробнику кліку на кнопку СТАРТ.
+        function unlockAudio() {
+            if (audioUnlocked) return;
+            Object.values(audioCache).forEach(audio => {
+                audio.volume = 0;
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = 1;
+                }).catch(() => {});
+            });
+            audioUnlocked = true;
+        }
+
+        // Відтворення звуку: клонуємо елемент, щоб звуки могли накладатись один на одного
+        // (наприклад, два свистки поспіль або гонг, що ще не дограв)
+        function playSound(name, volume = 1) {
+            const original = audioCache[name];
+            if (!original) {
+                console.warn(`Файл для "${name}" не завантажено (перевірте sounds/${name}.mp3)`);
+                return;
+            }
             try {
-                initAudio();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                if (slideFreq) {
-                    osc.frequency.exponentialRampToValueAtTime(slideFreq, audioCtx.currentTime + dur);
-                }
-                
-                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + dur);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + dur);
-            } catch (e) { console.log("Audio error:", e); }
+                const instance = original.cloneNode(true);
+                instance.volume = volume;
+                instance.play().catch(e => console.log('Audio play error:', e));
+            } catch (e) {
+                console.log('Audio error:', e);
+            }
         }
 
-        // 1. Металевий ГОНГ — додано глибини базовому удару та чистоти відлунню
-        function playGong() {
-            playSound(261.63, 3.8, "sawtooth", 0.5); // Базовий металевий удар (чуть тихіше, щоб не рипів)
-            setTimeout(() => playSound(329.63, 3.5, "sine", 0.5), 25);  // Об'ємний гул
-            setTimeout(() => playSound(392.00, 3.0, "sine", 0.4), 50);  // Гармоніка
-            setTimeout(() => playSound(523.25, 2.0, "triangle", 0.3), 80); // Яскравий верхній дзвін (До 5-ї октави)
-        }
-
-        // 2. Суддівський свисток — звучить довше (0.7 сек) та реалістичніше за рахунок різниці частот
-        function playWhistle() {
-        // Перший пронизливий тон із падінням частоти
-            playSound(2100, 0.7, "triangle", 0.4, 1900); 
-        // Другий тон зсунутий на 50 Гц — це створює природний ефект "хрипоти" та вібрації кульки
-            setTimeout(() => playSound(2150, 0.65, "sine", 0.3, 1950), 15);
-        }
-        function playOneWhistle() { playWhistle(); }
+        function playGong()        { playSound('gong'); }
+        function playOneWhistle()  { playSound('whistle'); }
         function playTwoWhistles() {
-            playWhistle();
-            setTimeout(playWhistle, 800);
+            playSound('whistle');
+            setTimeout(() => playSound('whistle'), 800);
         }
+        function play10SecWarning() { playSound('warning'); }
+        function playTick()         { playSound('tick', 0.6); }
 
-        // 3. Відсічка 10 секунд (Удар паличками)
-        function play10SecWarning() {
-            playSound(800, 0.08, "square", 0.4);
-            setTimeout(() => playSound(800, 0.08, "square", 0.4), 150);
-            setTimeout(() => playSound(800, 0.08, "square", 0.4), 300);
-        }
-
-        // 4. Короткий пік (для відліку підготовки/відпочинку 3-2-1)
-        function playTick() { playSound(600, 0.1, "sine", 0.3); }
-
+        // Запускаємо завантаження файлів одразу при відкритті сторінки
+        preloadSounds();
 
         // ==================== ЛОГІКА ТАЙМЕРА ====================
         let timerInterval = null;
@@ -155,7 +161,7 @@
 
         // ==================== ГОЛОВНИЙ КОНТРОЛЕР ====================
         async function startTraining() {
-            initAudio();
+            unlockAudio();
             await requestWakeLock();
 
             // Збираємо налаштування
@@ -177,7 +183,7 @@
             state.phase = 'PREPARE';
             state.currentRound = 1;
             state.timeRemaining = 5; // 5 секунд підготовки
-            
+
             updateScreen();
 
             // Головний цикл таймера (кожної секунди)
@@ -194,7 +200,7 @@
                 } else {
                     startNextRound();
                 }
-            } 
+            }
             else if (state.phase === 'ROUND') {
                 // Якщо є інтервали, зменшуємо час інтервалу
                 if (!config.isNormalMode) {
@@ -218,7 +224,7 @@
                     if (!config.isNormalMode && state.subPhaseTime <= 0) {
                         state.isBurst = !state.isBurst;
                         state.subPhaseTime = state.isBurst ? config.burstDur : config.runDur;
-                        
+
                         if (state.isBurst) playOneWhistle();
                         else playTwoWhistles();
                     }
@@ -228,7 +234,7 @@
                 if (state.timeRemaining <= 3 && state.timeRemaining > 0) {
                     playTick();
                 }
-                
+
                 if (state.timeRemaining <= 0) {
                     state.currentRound++;
                     startNextRound();
@@ -258,7 +264,7 @@
             state.timeRemaining = 0;
             clearInterval(timerInterval);
             playGong(); // ФІНАЛЬНИЙ ГОНГ
-            
+
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
             document.getElementById('btn-start').innerText = "ПОЧАТИ ЗНОВУ";
@@ -270,7 +276,7 @@
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
             state.phase = 'STOPPED';
             updateScreen();
-            
+
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
             document.getElementById('btn-start').innerText = "СТАРТ";
@@ -291,7 +297,7 @@
                 phaseTitle.innerText = config.isNormalMode ? "Готуємося до БОЮ" : "Готуємося до РУХУ";
                 timerDisplay.innerText = formatTime(state.timeRemaining);
                 totalTime.innerText = "Концентрація";
-            } 
+            }
             else if (state.phase === 'ROUND') {
                 roundTitle.innerText = `Раунд ${state.currentRound} / ${config.rounds}`;
                 totalTime.innerText = `Час раунду: ${formatTime(state.timeRemaining)}`;
@@ -312,7 +318,7 @@
                     }
                     timerDisplay.innerText = formatTime(state.subPhaseTime);
                 }
-            } 
+            }
             else if (state.phase === 'REST') {
                 statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-rest";
                 roundTitle.innerText = "ВІДПОЧИНОК";
