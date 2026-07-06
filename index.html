@@ -2,473 +2,697 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <!-- Для ручного оновлення кешу просто змінюй версію тут (наприклад, на v=1.0.4), коли оновлюєш код -->
-    <meta name="app-version" content="v=1.0.3">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boxing Flow Timer</title>
+    <!-- Для ручного оновлення кешу просто змінюй версію тут (наприклад, v=1.0.4) при апдейтах -->
+    <meta name="app-version" content="v=1.0.4">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Боксерський таймер</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BoxTimer">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
+        body { background-color: #121212; color: #ffffff; font-family: system-ui, sans-serif; }
+        /* Кольори фаз */
+        .phase-prepare { background-color: #1e3a8a; } /* Темно-синій для старту */
+        .phase-normal  { background-color: #16a34a; } /* Зелений - звичайна робота */
+        .phase-run     { background-color: #0ea5e9; } /* Голубий - рух */
+        .phase-burst   { background-color: #dc2626; } /* Червоний - вибух */
+        .phase-rest    { background-color: #4b5563; } /* Сірий - відпочинок */
+
+        /* Повноекранний режим тренування */
+        body.training-fullscreen {
+            background-color: var(--phase-color, #121212);
+            transition: background-color 0.5s;
             padding: 0;
-            font-family: 'Arial Black', -apple-system, sans-serif;
-            user-select: none;
         }
-
-        body {
-            background-color: #0a0a0a;
-            color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
-            position: relative;
-        }
-
-        /* Динамічний «рідкий» фон, що заливає екран знизу вгору */
-        .bg-liquid-fill {
-            position: absolute;
-            bottom: 0;
-            left: 0;
+        body.training-fullscreen .app-card {
+            max-width: 100%;
             width: 100%;
-            height: 100%; /* Керується через JS (від 100% до 0%) */
-            background: linear-gradient(0deg, #ff3300 0%, #ff6600 100%);
-            transition: height 1s linear, background-color 0.5s ease;
-            z-index: 1;
-        }
-
-        /* Колір фону для відпочинку */
-        .bg-liquid-fill.rest-phase {
-            background: linear-gradient(0deg, #00aa50 0%, #00ff66 100%);
-        }
-
-        /* Головна картка інтерфейсу */
-        .timer-interface {
-            position: relative;
-            z-index: 2;
-            width: 100%;
-            max-width: 480px;
             height: 100vh;
-            padding: 40px 24px;
+            height: 100dvh;
+            border-radius: 0;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center;
+            border: none;
+            background-color: transparent !important;
+            box-shadow: none;
+            overflow: hidden;
+        }
+        body.training-fullscreen #status-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.2); /* Легке затемнення поверх ефекту заливки */
-            backdrop-filter: blur(8px);
+            margin-bottom: 0;
+            border-radius: 0;
+            background-color: transparent !important;
+            min-height: 0;
         }
-
-        /* Кнопка-шестерня у верхньому кутку */
-        .gear-btn {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            background: none;
-            border: none;
-            font-size: 2.2rem;
-            cursor: pointer;
-            color: rgba(255, 255, 255, 0.7);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s;
-        }
-
-        .gear-btn:hover {
-            transform: rotate(90deg);
-            color: #ffffff;
-        }
-
-        /* Назва фази (Раунд / Відпочинок) */
-        .phase-title {
-            font-size: 2.5rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 60px;
-            text-shadow: 0 4px 10px rgba(0,0,0,0.4);
-            animation: pulseText 2s infinite ease-in-out;
-        }
-
-        @keyframes pulseText {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.03); }
-            100% { transform: scale(1); }
-        }
-
-        /* ВЕЛИЧЕЗНІ ЦИФРИ (Максимальний фокус) */
-        .huge-timer-digits {
-            font-size: 9.5rem;
-            font-weight: 900;
+        body.training-fullscreen #timer-display {
+            font-size: clamp(5rem, 32vmin, 20rem);
             line-height: 1;
-            font-variant-numeric: tabular-nums;
-            text-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-            margin: 10px 0;
-            transition: transform 0.1s;
+            margin-bottom: 1rem;
+        }
+        body.training-fullscreen #round-title {
+            font-size: clamp(1.5rem, 8vmin, 3rem);
+            flex-shrink: 0;
+        }
+        body.training-fullscreen #phase-title {
+            font-size: clamp(1.1rem, 6vmin, 2rem);
+            flex-shrink: 0;
+        }
+        body.training-fullscreen #total-time {
+            font-size: clamp(1rem, 5vmin, 1.5rem);
+            flex-shrink: 0;
+        }
+        @media (orientation: landscape) {
+            body.training-fullscreen #status-card {
+                padding: 1rem;
+            }
+            body.training-fullscreen #timer-display {
+                font-size: clamp(4rem, 26vmin, 14rem);
+                margin-bottom: 0.5rem;
+            }
+        }
+        @media (orientation: portrait) {
+            body.training-fullscreen .app-card {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                width: 100vh;
+                width: 100dvh;
+                height: 100vw;
+                height: 100dvw;
+                transform: translate(-50%, -50%) rotate(90deg);
+                transform-origin: center center;
+            }
+            body.training-fullscreen #timer-display {
+                font-size: clamp(4rem, 26vmin, 14rem);
+            }
         }
 
-        /* Анімація екстреного блимання, коли час вийшов */
-        .time-up-blink {
-            animation: urgentFlash 0.6s infinite alternate;
-            color: #fff !important;
-        }
-
-        @keyframes urgentFlash {
-            0% { opacity: 1; transform: scale(1); }
-            100% { opacity: 0.2; transform: scale(1.05); }
-        }
-
-        /* Інформація про поточний раунд */
-        .round-info {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.9);
-            text-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            margin-bottom: 20px;
-        }
-
-        /* Кнопка у вигляді великого горизонтального розтягнення */
-        .stretched-action-btn {
-            width: 100%;
-            padding: 24px;
-            font-size: 1.5rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            border: none;
-            border-radius: 100px; /* Повністю витягнута овальна форма */
-            background-color: #ffffff;
-            color: #000000;
-            cursor: pointer;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-            transition: transform 0.1s ease, background-color 0.2s;
-        }
-
-        .stretched-action-btn:active {
-            transform: scale(0.96);
-            background-color: #e6e6e6;
-        }
-
-        /* Модалка налаштувань */
-        .settings-overlay {
+        /* Стилі для кастомного модального вікна налаштувань */
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(15px);
+            backdrop-filter: blur(10px);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 100;
-        }
-
-        .settings-overlay.hidden {
-            display: none;
-        }
-
-        .modal-box {
-            background: #161616;
-            width: 90%;
-            max-width: 400px;
-            border-radius: 30px;
-            padding: 35px 25px;
-            position: relative;
-            border: 2px solid #262626;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-        }
-
-        .close-modal-x {
-            position: absolute;
-            top: 20px;
-            right: 25px;
-            background: none;
-            border: none;
-            font-size: 2.5rem;
-            color: #666;
-            cursor: pointer;
-        }
-
-        .close-modal-x:hover {
-            color: #fff;
-        }
-
-        .modal-box h2 {
-            font-size: 1.8rem;
-            margin-bottom: 25px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* Перемикач мови */
-        .language-wrapper {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .lang-option {
-            flex: 1;
-            padding: 14px;
-            background: #222;
-            border: 2px solid #333;
-            color: #888;
-            font-size: 1.1rem;
-            font-weight: 900;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .lang-option.active-lang {
-            background: #ff4500;
-            color: #fff;
-            border-color: #ff4500;
-            box-shadow: 0 5px 15px rgba(255, 69, 0, 0.4);
-        }
-
-        /* Інструкція всередині */
-        .info-block h3 {
-            font-size: 1.2rem;
-            color: #ff5500;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-
-        .info-block p {
-            font-size: 0.95rem;
-            color: #b0b0b0;
-            line-height: 1.5;
-            font-family: system-ui, sans-serif;
-        }
-
-        /* Авторство та лінк на GitHub без прізвища */
-        .credits-footer {
-            margin-top: 35px;
-            text-align: center;
-            font-size: 0.9rem;
-            color: #555;
-            font-family: system-ui, sans-serif;
-        }
-
-        .credits-footer a {
-            color: #ff5500;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .credits-footer a:hover {
-            text-decoration: underline;
+            z-index: 50;
         }
     </style>
+    <script data-goatcounter="https://boxing-timer.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
-<body>
+<body class="flex flex-col items-center justify-center min-h-screen p-4 transition-colors duration-500 relative">
 
-    <!-- Рідкий задній фон, який змінює висоту -->
-    <div id="liquid-bg" class="bg-liquid-fill"></div>
-
-    <!-- Основний інтерфейс користувача -->
-    <div class="timer-interface">
-        <button id="gear-btn" class="gear-btn">⚙️</button>
-
-        <div id="phase-text" class="phase-title">Раунд</div>
+    <!-- Головна картка застосунку -->
+    <div class="app-card w-full max-w-md bg-zinc-900/90 rounded-3xl p-6 shadow-2xl border border-zinc-800 text-center relative">
         
-        <!-- Лише великі цифри, жодних дрібних повторів -->
-        <div id="big-timer" class="huge-timer-digits">03:00</div>
+        <!-- Кнопка налаштувань (Шестерня) -->
+        <button onclick="openSettings()" class="absolute top-5 right-5 text-zinc-400 hover:text-white text-2xl transition-transform hover:rotate-45 cursor-pointer z-10">⚙️</button>
 
-        <div id="round-text" class="round-info">Раунд 1/12</div>
+        <!-- Картка статусу -->
+        <div id="status-card" class="phase-prepare rounded-2xl p-6 mb-6 transition-colors duration-500 shadow-lg">
+            <h2 id="round-title" class="text-2xl font-black tracking-wider uppercase mb-1">Гонг Чекає</h2>
+            <p id="phase-title" class="text-xl font-bold opacity-90 text-white">Налаштуйте та тисніть Старт</p>
+        </div>
 
-        <!-- Кнопка у вигляді великого розтягнення -->
-        <button id="action-btn" class="stretched-action-btn">НАСТУПНИЙ ЕТАП</button>
+        <!-- Головний таймер -->
+        <div class="mb-6 relative">
+            <div id="timer-display" class="text-8xl font-black font-mono tracking-tight text-white mb-2">00:00</div>
+            <p id="total-time" class="text-sm text-zinc-400 font-bold">Час раунду: 00:00</p>
+        </div>
+
+        <!-- Поля конфігурації -->
+        <div id="settings-box" class="grid grid-cols-2 gap-4 text-left mb-6">
+            <div>
+                <label id="lbl-rounds" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раундів</label>
+                <input type="number" id="input-rounds" value="3" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+            </div>
+            <div>
+                <label id="lbl-round-time" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раунд (сек)</label>
+                <input type="number" id="input-round-time" value="180" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+            </div>
+            <div>
+                <label id="lbl-slow-time" class="text-xs text-sky-400 font-black uppercase block mb-1">🏃‍♂️ Рух (сек)</label>
+                <input type="number" id="input-slow-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-sky-500 transition-colors">
+            </div>
+            <div>
+                <label id="lbl-fast-time" class="text-xs text-red-400 font-black uppercase block mb-1">⚡ Вибух (сек)</label>
+                <input type="number" id="input-fast-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-red-500 transition-colors">
+            </div>
+            <div class="col-span-2">
+                <label id="lbl-rest-time" class="text-xs text-zinc-400 font-black uppercase block mb-1">Відпочинок (сек)</label>
+                <input type="number" id="input-rest-time" value="60" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-gray-500 transition-colors">
+            </div>
+            <div class="col-span-2">
+                <label id="lbl-prepare-time" class="text-xs text-zinc-400 font-black uppercase block mb-1">Підготовка перед стартом (сек)</label>
+                <input type="number" id="input-prepare-time" value="5" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+            </div>
+        </div>
+
+        <!-- Управління тренуванням -->
+        <div class="flex gap-4">
+            <button id="btn-start" onclick="startTraining()" class="flex-1 bg-green-600 hover:bg-green-500 active:scale-95 text-white font-black py-4 rounded-2xl tracking-wide transition-all shadow-lg shadow-green-900/30 text-lg uppercase cursor-pointer">СТАРТ</button>
+            <button id="btn-pause" onclick="togglePause()" class="flex-1 bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-black py-4 rounded-2xl tracking-wide transition-all hidden text-lg uppercase cursor-pointer">ПАУЗА</button>
+            <button id="btn-stop" onclick="stopTraining()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-red-400 font-black py-4 rounded-2xl tracking-wide transition-all hidden text-lg uppercase border border-zinc-700 cursor-pointer">СТОП</button>
+        </div>
     </div>
 
-    <!-- Модалка налаштувань мови та інструкції -->
-    <div id="settings-popup" class="settings-overlay hidden">
-        <div class="modal-box">
-            <button id="close-popup" class="close-modal-x">×</button>
-            <h2 id="menu-title">Налаштування</h2>
+    <!-- Кнопка активації Повного екрана (винесена окремо для зручності) -->
+    <button id="btn-fullscreen-toggle" onclick="toggleManualFullscreen()" class="mt-4 px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-sm transition-all border border-zinc-700 tracking-wide uppercase cursor-pointer shadow-md">
+        🖥 Повний екран
+    </button>
 
-            <div class="language-wrapper">
-                <button id="ua-btn" class="lang-option active-lang">УКР</button>
-                <button id="en-btn" class="lang-option">ENG</button>
+    <!-- Модалка налаштувань (Мова / Інструкція / ГітХаб) -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 w-full max-w-sm text-center relative shadow-2xl mx-4">
+            <button onclick="closeSettings()" class="absolute top-4 right-5 text-zinc-500 hover:text-white text-3xl cursor-pointer">×</button>
+            
+            <h3 id="modal-title" class="text-xl font-black uppercase tracking-wider mb-5">Налаштування</h3>
+            
+            <!-- Перемикач мов -->
+            <div class="flex gap-3 mb-6">
+                <button id="btn-lang-ua" onclick="changeLanguage('ua')" class="flex-1 py-2.5 rounded-xl font-black text-sm border-2 cursor-pointer transition-all">УКР</button>
+                <button id="btn-lang-en" onclick="changeLanguage('en')" class="flex-1 py-2.5 rounded-xl font-black text-sm border-2 cursor-pointer transition-all">ENG</button>
             </div>
 
-            <div class="info-block">
-                <h3 id="rules-title">Інструкція</h3>
-                <p id="rules-paragraph">Час рухається вперед. Коли поточний етап закінчується, екран починає блимати червоним або зеленим коліром. Перехід не автоматичний — натисніть велику розтягнуту кнопку внизу, щоб змінити етап тренування вручну.</p>
+            <!-- Блок інструкції -->
+            <div class="text-left bg-zinc-950 p-4 rounded-xl border border-zinc-800 mb-6">
+                <h4 id="modal-ins-title" class="text-xs font-black text-zinc-400 uppercase tracking-widest mb-1.5">Інструкція</h4>
+                <p id="modal-ins-body" class="text-xs text-zinc-300 leading-relaxed font-medium">
+                    Встановіть необхідний час раундів та відпочинку. Ви можете активувати повноекранний режим тренування за допомогою кнопки під таймером для зручної роботи на відстані.
+                </p>
             </div>
 
-            <!-- Посилання на GitHub та чисте ім'я -->
-            <div class="credits-footer">
-                <span id="author-label">Developer:</span> <a href="https://github.com/projecttestm1-afk/boxing-timer" target="_blank">Maksim (GitHub)</a>
+            <!-- Копірайт та Гітхаб без прізвища -->
+            <div class="text-xs text-zinc-500 font-bold border-t border-zinc-800 pt-4">
+                Code by <a href="https://github.com/projecttestm1-afk/boxing-timer" target="_blank" class="text-blue-500 hover:underline">Maksim (GitHub)</a>
             </div>
         </div>
     </div>
 
     <script>
-        // Тексти інтерфейсу
-        const languagePack = {
+        // ==================== АУДІО ДВИЖОК (РЕАЛЬНІ ФАЙЛИ) ====================[cite: 1]
+        const SOUND_FILES = {
+            gong:     'sounds/gong.mp3',      // Удар гонгу — старт раунду / відпочинку / фініш[cite: 1]
+            whistle:  'sounds/whistle.mp3',   // Суддівський свисток — перемикання рух/вибух[cite: 1]
+            warning:  'sounds/warning.mp3',   // Коротка відсічка за 10 сек до кінця раунду[cite: 1]
+            tick:     'sounds/tick.mp3'       // Короткий "пік" для відліку підготовки/відпочинку[cite: 1]
+        };
+
+        const audioCache = {}; //[cite: 1]
+        let audioUnlocked = false; //[cite: 1]
+
+        function preloadSounds() { //[cite: 1]
+            Object.entries(SOUND_FILES).forEach(([key, src]) => { //[cite: 1]
+                const audio = new Audio(src); //[cite: 1]
+                audio.preload = 'auto'; //[cite: 1]
+                audioCache[key] = audio; //[cite: 1]
+            }); //[cite: 1]
+        } //[cite: 1]
+
+        function unlockAudio() { //[cite: 1]
+            if (audioUnlocked) return; //[cite: 1]
+            Object.values(audioCache).forEach(audio => { //[cite: 1]
+                audio.volume = 0; //[cite: 1]
+                audio.play().then(() => { //[cite: 1]
+                    audio.pause(); //[cite: 1]
+                    audio.currentTime = 0; //[cite: 1]
+                    audio.volume = 1; //[cite: 1]
+                }).catch(() => {}); //[cite: 1]
+            }); //[cite: 1]
+            audioUnlocked = true; //[cite: 1]
+        } //[cite: 1]
+
+        let activeAudios = []; //[cite: 1]
+
+        function playSound(name, volume = 1) { //[cite: 1]
+            const src = SOUND_FILES[name]; //[cite: 1]
+            if (!src) return; //[cite: 1]
+            try {
+                const instance = new Audio(src); //[cite: 1]
+                instance.volume = volume; //[cite: 1]
+                activeAudios.push(instance); //[cite: 1]
+                instance.addEventListener('ended', () => { //[cite: 1]
+                    activeAudios = activeAudios.filter(a => a !== instance); //[cite: 1]
+                }); //[cite: 1]
+                instance.play().catch(e => console.log(`Audio error [${name}]:`, e)); //[cite: 1]
+            } catch (e) { console.log('Audio error:', e); } //[cite: 1]
+        } //[cite: 1]
+
+        function stopAllSounds() { //[cite: 1]
+            activeAudios.forEach(a => { //[cite: 1]
+                try { a.pause(); a.currentTime = 0; } catch (e) {} //[cite: 1]
+            }); //[cite: 1]
+            activeAudios = []; //[cite: 1]
+        } //[cite: 1]
+
+        function playGong()        { playSound('gong'); } //[cite: 1]
+        function playOneWhistle()  { playSound('whistle'); } //[cite: 1]
+        function play10SecWarning() { playSound('warning'); } //[cite: 1]
+        function playTick()         { playSound('tick', 0.6); } //[cite: 1]
+
+        preloadSounds(); //[cite: 1]
+
+        // ==================== МОВНІ ПАКЕТИ (ЛОКАЛІЗАЦІЯ) ====================
+        const i18n = {
             ua: {
-                work: "РАУНД",
-                rest: "ВІДПОЧИНОК",
-                roundStr: "Раунд",
-                btnText: "НАСТУПНИЙ ЕТАП",
-                menuTitle: "Налаштування",
-                rulesTitle: "Інструкція",
-                rulesText: "Час рухається вперед. Коли поточний етап закінчується, екран починає блимати червоним або зеленим коліром. Перехід не автоматичний — натисніть велику розтягнуту кнопку внизу, щоб змінити етап тренування вручну.",
-                author: "Автор:"
+                gongWaiting: "Гонг Чекає",
+                setupAndStart: "Налаштуйте та тисніть Старт",
+                lblRounds: "Раундів",
+                lblRoundTime: "Раунд (сек)",
+                lblSlowTime: "🏃‍♂️ Рух (сек)",
+                lblFastTime: "⚡ Вибух (сек)",
+                lblRestTime: "Відпочинок (сек)",
+                lblPrepareTime: "Підготовка перед стартом (сек)",
+                btnStart: "СТАРТ",
+                btnPause: "ПАУЗА",
+                btnResume: "ПРОДОВЖИТИ",
+                btnStop: "СТОП",
+                btnFullscreenOn: "🖥 Повний екран",
+                btnFullscreenOff: "📱 Згорнути екран",
+                modalTitle: "Налаштування",
+                modalInsTitle: "Інструкція",
+                modalInsBody: "Встановіть необхідний час раундів та відпочинку. Ви можете активувати повноекранний режим тренування за допомогою кнопки під таймером для зручної роботи на відстані.",
+                phasePrepare: "ПІДГОТОВКА",
+                phaseReadyToFight: "Готуємося до БОЮ",
+                phaseReadyToRun: "Готуємося до РУХУ",
+                phaseConcentration: "Концентрація",
+                phaseFight: "🥊 БІЙ 🥊",
+                phaseBurst: "⚡ ВИБУХ (ШВИДКО) ⚡",
+                phaseRun: "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️",
+                phaseRest: "ВІДПОЧИНОК",
+                phaseGetReadyForRound: "Готуйтесь до раунду",
+                phaseRestoreBreathing: "Відновлюйте дихання",
+                phaseFinishedTitle: "🏆 КІНЕЦЬ 🏆",
+                phaseFinishedBody: "Тренування завершено!",
+                phaseGreatWork: "Чудова робота!",
+                phaseStoppedTitle: "ЗУПИНЕНО",
+                phaseStoppedBody: "Тренування перервано",
+                roundText: "Раунд",
+                roundTimeText: "Час раунду"
             },
             en: {
-                work: "ROUND",
-                rest: "REST",
-                roundStr: "Round",
-                btnText: "NEXT STEP",
-                menuTitle: "Settings",
-                rulesTitle: "Instructions",
-                rulesText: "Time is ticking down. When the current phase ends, the screen will flash intensely. The transition is manual — tap the large stretched button below to advance to the next step.",
-                author: "Developer:"
+                gongWaiting: "Gong is Waiting",
+                setupAndStart: "Configure fields & press Start",
+                lblRounds: "Rounds",
+                lblRoundTime: "Round (sec)",
+                lblSlowTime: "🏃‍♂️ Pace (sec)",
+                lblFastTime: "⚡ Burst (sec)",
+                lblRestTime: "Rest (sec)",
+                lblPrepareTime: "Preparation before start (sec)",
+                btnStart: "START",
+                btnPause: "PAUSE",
+                btnResume: "RESUME",
+                btnStop: "STOP",
+                btnFullscreenOn: "🖥 Fullscreen",
+                btnFullscreenOff: "📱 Exit Fullscreen",
+                modalTitle: "Settings",
+                modalInsTitle: "Instructions",
+                modalInsBody: "Set up the target time parameters for rounds and rest periods. You can unlock the responsive orientation-locked fullscreen mode with the button beneath the card.",
+                phasePrepare: "PREPARATION",
+                phaseReadyToFight: "Get ready to FIGHT",
+                phaseReadyToRun: "Get ready to PACE",
+                phaseConcentration: "Concentration",
+                phaseFight: "🥊 FIGHT 🥊",
+                phaseBurst: "⚡ BURST (FAST) ⚡",
+                phaseRun: "🏃‍♂️ PACE (LIGHT) 🏃‍♂️",
+                phaseRest: "REST",
+                phaseGetReadyForRound: "Get ready for round",
+                phaseRestoreBreathing: "Restore your breathing",
+                phaseFinishedTitle: "🏆 FINISHED 🏆",
+                phaseFinishedBody: "Workout is complete!",
+                phaseGreatWork: "Great job!",
+                phaseStoppedTitle: "STOPPED",
+                phaseStoppedBody: "Workout interrupted",
+                roundText: "Round",
+                roundTimeText: "Round time"
             }
         };
 
-        // Фіксовані налаштування часу для боксу
-        const TIME_WORK = 180; 
-        const TIME_REST = 60;  
-        const TOTAL_ROUNDS = 12;
+        let currentLang = localStorage.getItem('box_timer_lang') || 'ua';
 
-        let currentRound = 1;
-        let isWorkMode = true;
-        let secondsLeft = TIME_WORK;
-        let intervalTimer = null;
-        let activeLang = 'ua';
+        // ==================== ЛОГІКА ТАЙМЕРА ====================[cite: 1]
+        let timerInterval = null; //[cite: 1]
+        let wakeLock = null; //[cite: 1]
 
-        // DOM Елементи
-        const liquidBg = document.getElementById('liquid-bg');
-        const phaseText = document.getElementById('phase-text');
-        const bigTimer = document.getElementById('big-timer');
-        const roundText = document.getElementById('round-text');
-        const actionBtn = document.getElementById('action-btn');
-        
-        const gearBtn = document.getElementById('gear-btn');
-        const settingsPopup = document.getElementById('settings-popup');
-        const closePopup = document.getElementById('close-popup');
-        const uaBtn = document.getElementById('ua-btn');
-        const enBtn = document.getElementById('en-btn');
+        let config = {}; //[cite: 1]
+        let state = { //[cite: 1]
+            phase: 'STOPPED', // PREPARE, ROUND, REST, FINISHED[cite: 1]
+            currentRound: 1, //[cite: 1]
+            timeRemaining: 0, //[cite: 1]
+            subPhaseTime: 0, //[cite: 1]
+            isBurst: false, //[cite: 1]
+            isPaused: false //[cite: 1]
+        };
 
-        const menuTitle = document.getElementById('menu-title');
-        const rulesTitle = document.getElementById('rules-title');
-        const rulesParagraph = document.getElementById('rules-paragraph');
-        const authorLabel = document.getElementById('author-label');
+        function getInt(id, defaultVal = 0) { //[cite: 1]
+            const val = parseInt(document.getElementById(id).value); //[cite: 1]
+            return isNaN(val) || val < 0 ? defaultVal : val; //[cite: 1]
+        } //[cite: 1]
 
-        // Електронний звуковий сигнал закінчення часу
-        function triggerBell() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const nodeGain = audioCtx.createGain();
-                osc.connect(nodeGain);
-                nodeGain.connect(audioCtx.destination);
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(650, audioCtx.currentTime);
-                nodeGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                osc.start();
-                nodeGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-                osc.stop(audioCtx.currentTime + 0.5);
-            } catch(e) { console.log("Чекаємо взаємодії з екраном для звуку."); }
+        function formatTime(s) { //[cite: 1]
+            if (s < 0) s = 0; //[cite: 1]
+            const m = Math.floor(s / 60).toString().padStart(2, '0'); //[cite: 1]
+            const sec = (s % 60).toString().padStart(2, '0'); //[cite: 1]
+            return `${m}:${sec}`; //[cite: 1]
+        } //[cite: 1]
+
+        async function requestWakeLock() { //[cite: 1]
+            try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {} //[cite: 1]
+        } //[cite: 1]
+
+        // ==================== ПОВНОЕКРАННИЙ РЕЖИМ (РУЧНИЙ) ====================
+        function toggleManualFullscreen() {
+            if (!document.body.classList.contains('training-fullscreen')) {
+                enterFullscreenMode();
+            } else {
+                exitFullscreenMode();
+            }
         }
 
-        // Обчислення та відображення
-        function renderTimer() {
-            const minutes = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
-            const seconds = (secondsLeft % 60).toString().padStart(2, '0');
-            bigTimer.textContent = `${minutes}:${seconds}`;
-
-            const activeMaxTime = isWorkMode ? TIME_WORK : TIME_REST;
+        function enterFullscreenMode() { //[cite: 1]
+            document.body.classList.add('training-fullscreen'); //[cite: 1]
+            document.getElementById('btn-fullscreen-toggle').innerText = i18n[currentLang].btnFullscreenOff;
             
-            // Ефект плавної заливки рідкого фону (відсоток залишку часу)
-            const percentage = (secondsLeft / activeMaxTime) * 100;
-            liquidBg.style.height = `${percentage}%`;
+            const el = document.documentElement; //[cite: 1]
+            const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen; //[cite: 1]
 
-            if (isWorkMode) {
-                phaseText.textContent = languagePack[activeLang].work;
-                liquidBg.classList.remove('rest-phase');
-            } else {
-                phaseText.textContent = languagePack[activeLang].rest;
-                liquidBg.classList.add('rest-phase');
+            const tryLockLandscape = () => { //[cite: 1]
+                if (screen.orientation && screen.orientation.lock) { //[cite: 1]
+                    screen.orientation.lock('landscape') //[cite: 1]
+                        .catch(err => console.log('Orientation lock error:', err)); //[cite: 1]
+                } //[cite: 1]
+            }; //[cite: 1]
+
+            if (req) { //[cite: 1]
+                req.call(el).then(tryLockLandscape).catch(tryLockLandscape); //[cite: 1]
+            } else { //[cite: 1]
+                tryLockLandscape(); //[cite: 1]
             }
+        } //[cite: 1]
 
-            roundText.textContent = `${languagePack[activeLang].roundStr} ${currentRound}/${TOTAL_ROUNDS}`;
+        function exitFullscreenMode() { //[cite: 1]
+            document.body.classList.remove('training-fullscreen'); //[cite: 1]
+            document.getElementById('btn-fullscreen-toggle').innerText = i18n[currentLang].btnFullscreenOn;
+            
+            if (document.fullscreenElement) { //[cite: 1]
+                (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen) //[cite: 1]
+                    .call(document).catch(() => {}); //[cite: 1]
+            } //[cite: 1]
+        } //[cite: 1]
 
-            // Якщо час вийшов — вмикаємо жорстке блимання екрана
-            if (secondsLeft === 0) {
-                bigTimer.classList.add('time-up-blink');
-            } else {
-                bigTimer.classList.remove('time-up-blink');
+        // ==================== ГОЛОВНИЙ КОНТРОЛЕР ====================[cite: 1]
+        async function startTraining() { //[cite: 1]
+            unlockAudio(); //[cite: 1]
+            await requestWakeLock(); //[cite: 1]
+
+            config = { //[cite: 1]
+                rounds: getInt('input-rounds', 3), //[cite: 1]
+                roundDur: getInt('input-round-time', 180), //[cite: 1]
+                runDur: getInt('input-slow-time', 0), //[cite: 1]
+                burstDur: getInt('input-fast-time', 0), //[cite: 1]
+                prepareDur: getInt('input-prepare-time', 5), //[cite: 1]
+                restDur: getInt('input-rest-time', 60) //[cite: 1]
+            }; //[cite: 1]
+            config.isNormalMode = (config.runDur === 0 && config.burstDur === 0); //[cite: 1]
+
+            document.getElementById('settings-box').classList.add('hidden'); //[cite: 1]
+            document.getElementById('btn-start').classList.add('hidden'); //[cite: 1]
+            document.getElementById('btn-pause').classList.remove('hidden'); //[cite: 1]
+            document.getElementById('btn-pause').innerText = i18n[currentLang].btnPause;
+            document.getElementById('btn-stop').classList.remove('hidden'); //[cite: 1]
+            state.isPaused = false; //[cite: 1]
+
+            state.phase = 'PREPARE'; //[cite: 1]
+            state.currentRound = 1; //[cite: 1]
+            state.timeRemaining = config.prepareDur; //[cite: 1]
+
+            updateScreen(); //[cite: 1]
+            timerInterval = setInterval(tick, 1000); //[cite: 1]
+        } //[cite: 1]
+
+        function tick() { //[cite: 1]
+            state.timeRemaining--; //[cite: 1]
+
+            if (state.phase === 'PREPARE') { //[cite: 1]
+                if (state.timeRemaining > 0) { //[cite: 1]
+                    playTick(); //[cite: 1]
+                } else { //[cite: 1]
+                    startNextRound(); //[cite: 1]
+                } //[cite: 1]
+            } //[cite: 1]
+            else if (state.phase === 'ROUND') { //[cite: 1]
+                if (!config.isNormalMode) { //[cite: 1]
+                    state.subPhaseTime--; //[cite: 1]
+                } //[cite: 1]
+
+                if (state.timeRemaining === 10) { //[cite: 1]
+                    play10SecWarning(); //[cite: 1]
+                } //[cite: 1]
+
+                if (state.timeRemaining <= 0) { //[cite: 1]
+                    if (state.currentRound >= config.rounds) { //[cite: 1]
+                        finishTraining(); //[cite: 1]
+                    } else { //[cite: 1]
+                        startRest(); //[cite: 1]
+                    } //[cite: 1]
+                } else { //[cite: 1]
+                    if (!config.isNormalMode && state.subPhaseTime <= 0) { //[cite: 1]
+                        state.isBurst = !state.isBurst; //[cite: 1]
+                        state.subPhaseTime = state.isBurst ? config.burstDur : config.runDur; //[cite: 1]
+                        playOneWhistle(); //[cite: 1]
+                    } //[cite: 1]
+                } //[cite: 1]
+            } //[cite: 1]
+            else if (state.phase === 'REST') { //[cite: 1]
+                if (state.timeRemaining <= 5 && state.timeRemaining > 0) { //[cite: 1]
+                    playTick(); //[cite: 1]
+                } //[cite: 1]
+
+                if (state.timeRemaining <= 0) { //[cite: 1]
+                    state.currentRound++; //[cite: 1]
+                    startNextRound(); //[cite: 1]
+                } //[cite: 1]
+            } //[cite: 1]
+
+            updateScreen(); //[cite: 1]
+        } //[cite: 1]
+
+        function togglePause() { //[cite: 1]
+            const pauseBtn = document.getElementById('btn-pause'); //[cite: 1]
+            const phaseTitleEl = document.getElementById('phase-title'); //[cite: 1]
+
+            if (state.isPaused) { //[cite: 1]
+                state.isPaused = false; //[cite: 1]
+                timerInterval = setInterval(tick, 1000); //[cite: 1]
+                pauseBtn.innerText = i18n[currentLang].btnPause;
+                updateScreen(); //[cite: 1]
+            } else { //[cite: 1]
+                state.isPaused = true; //[cite: 1]
+                clearInterval(timerInterval); //[cite: 1]
+                timerInterval = null; //[cite: 1]
+                pauseBtn.innerText = i18n[currentLang].btnResume;
+                phaseTitleEl.innerText = "⏸ ПАУЗА / PAUSE"; //[cite: 1]
+            } //[cite: 1]
+        } //[cite: 1]
+
+        function startNextRound() { //[cite: 1]
+            state.phase = 'ROUND'; //[cite: 1]
+            state.timeRemaining = config.roundDur; //[cite: 1]
+            state.subPhaseTime = config.runDur; //[cite: 1]
+            state.isBurst = false; //[cite: 1]
+            stopAllSounds(); //[cite: 1]
+            playGong(); //[cite: 1]
+        } //[cite: 1]
+
+        function startRest() { //[cite: 1]
+            state.phase = 'REST'; //[cite: 1]
+            state.timeRemaining = config.restDur; //[cite: 1]
+            stopAllSounds(); //[cite: 1]
+            playGong(); //[cite: 1]
+        } //[cite: 1]
+
+        function finishTraining() { //[cite: 1]
+            state.phase = 'FINISHED'; //[cite: 1]
+            state.timeRemaining = 0; //[cite: 1]
+            clearInterval(timerInterval); //[cite: 1]
+            stopAllSounds(); //[cite: 1]
+            playGong(); //[cite: 1]
+            exitFullscreenMode(); //[cite: 1]
+
+            document.getElementById('settings-box').classList.remove('hidden'); //[cite: 1]
+            document.getElementById('btn-start').classList.remove('hidden'); //[cite: 1]
+            document.getElementById('btn-start').innerText = i18n[currentLang].btnStart;
+            document.getElementById('btn-pause').classList.add('hidden'); //[cite: 1]
+            document.getElementById('btn-stop').classList.add('hidden'); //[cite: 1]
+        } //[cite: 1]
+
+        function stopTraining() { //[cite: 1]
+            clearInterval(timerInterval); //[cite: 1]
+            if (wakeLock) { wakeLock.release(); wakeLock = null; } //[cite: 1]
+            state.phase = 'STOPPED'; //[cite: 1]
+            state.isPaused = false; //[cite: 1]
+            updateScreen(); //[cite: 1]
+            exitFullscreenMode(); //[cite: 1]
+
+            document.getElementById('settings-box').classList.remove('hidden'); //[cite: 1]
+            document.getElementById('btn-start').classList.remove('hidden'); //[cite: 1]
+            document.getElementById('btn-start').innerText = i18n[currentLang].btnStart;
+            document.getElementById('btn-pause').classList.add('hidden'); //[cite: 1]
+            document.getElementById('btn-stop').classList.add('hidden'); //[cite: 1]
+        } //[cite: 1]
+
+        // ==================== ВІДОБРАЖЕННЯ НА ЕКРАНІ ====================[cite: 1]
+        const PHASE_COLORS = { //[cite: 1]
+            'phase-prepare': '#1e3a8a', //[cite: 1]
+            'phase-normal':  '#16a34a', //[cite: 1]
+            'phase-run':     '#0ea5e9', //[cite: 1]
+            'phase-burst':   '#dc2626', //[cite: 1]
+            'phase-rest':    '#4b5563' //[cite: 1]
+        }; //[cite: 1]
+
+        function setStatusPhase(phaseClass) { //[cite: 1]
+            const statusCard = document.getElementById('status-card'); //[cite: 1]
+            statusCard.className = `rounded-2xl p-6 mb-6 transition-colors duration-500 ${phaseClass}`; //[cite: 1]
+            document.body.style.setProperty('--phase-color', PHASE_COLORS[phaseClass] || '#121212'); //[cite: 1]
+        } //[cite: 1]
+
+        function updateScreen() { //[cite: 1]
+            const roundTitle = document.getElementById('round-title'); //[cite: 1]
+            const phaseTitle = document.getElementById('phase-title'); //[cite: 1]
+            const timerDisplay = document.getElementById('timer-display'); //[cite: 1]
+            const totalTime = document.getElementById('total-time'); //[cite: 1]
+            const pack = i18n[currentLang];
+
+            if (state.phase === 'PREPARE') { //[cite: 1]
+                setStatusPhase('phase-prepare'); //[cite: 1]
+                roundTitle.innerText = pack.phasePrepare;
+                phaseTitle.innerText = config.isNormalMode ? pack.phaseReadyToFight : pack.phaseReadyToRun;
+                timerDisplay.innerText = state.timeRemaining > 0 ? state.timeRemaining : "GO!"; //[cite: 1]
+                totalTime.innerText = pack.phaseConcentration;
             }
+            else if (state.phase === 'ROUND') { //[cite: 1]
+                roundTitle.innerText = `${pack.roundText} ${state.currentRound} / ${config.rounds}`;
+                totalTime.innerText = `${pack.roundTimeText}: ${formatTime(state.timeRemaining)}`;
+
+                if (config.isNormalMode) { //[cite: 1]
+                    setStatusPhase('phase-normal'); //[cite: 1]
+                    phaseTitle.innerText = pack.phaseFight;
+                    timerDisplay.innerText = formatTime(state.timeRemaining); //[cite: 1]
+                } else { //[cite: 1]
+                    if (state.isBurst) { //[cite: 1]
+                        setStatusPhase('phase-burst'); //[cite: 1]
+                        phaseTitle.innerText = pack.phaseBurst;
+                    } else { //[cite: 1]
+                        setStatusPhase('phase-run'); //[cite: 1]
+                        phaseTitle.innerText = pack.phaseRun;
+                    } //[cite: 1]
+                    timerDisplay.innerText = formatTime(state.subPhaseTime); //[cite: 1]
+                } //[cite: 1]
+            }
+            else if (state.phase === 'REST') { //[cite: 1]
+                setStatusPhase('phase-rest'); //[cite: 1]
+                roundTitle.innerText = pack.phaseRest;
+                phaseTitle.innerText = `${pack.phaseGetReadyForRound} ${state.currentRound + 1}`;
+                timerDisplay.innerText = state.timeRemaining <= 5 ? state.timeRemaining : formatTime(state.timeRemaining); //[cite: 1]
+                totalTime.innerText = pack.phaseRestoreBreathing;
+            }
+            else if (state.phase === 'FINISHED') { //[cite: 1]
+                setStatusPhase('phase-prepare'); //[cite: 1]
+                roundTitle.innerText = pack.phaseFinishedTitle;
+                phaseTitle.innerText = pack.phaseFinishedBody;
+                timerDisplay.innerText = "00:00"; //[cite: 1]
+                totalTime.innerText = pack.phaseGreatWork;
+            }
+            else if (state.phase === 'STOPPED') { //[cite: 1]
+                setStatusPhase('phase-prepare'); //[cite: 1]
+                roundTitle.innerText = pack.gongWaiting;
+                phaseTitle.innerText = pack.setupAndStart;
+                timerDisplay.innerText = "00:00"; //[cite: 1]
+                totalTime.innerText = `${pack.roundTimeText}: 00:00`;
+            }
+        } //[cite: 1]
+
+        // ==================== МОДАЛЬНЕ ВІКНО ТА МОВА ====================
+        function openSettings() {
+            document.getElementById('settings-modal').classList.remove('hidden');
         }
 
-        function runTicker() {
-            if (secondsLeft > 0) {
-                secondsLeft--;
-                if (secondsLeft === 0) {
-                    triggerBell();
-                }
-                renderTimer();
-            }
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.add('hidden');
         }
 
-        // Керування кнопкою-розтягненням (ручне перегортання)
-        actionBtn.addEventListener('click', () => {
-            if (isWorkMode) {
-                isWorkMode = false;
-                secondsLeft = TIME_REST;
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('box_timer_lang', lang);
+            applyLanguage();
+        }
+
+        function applyLanguage() {
+            const pack = i18n[currentLang];
+            
+            // Кнопки вибору мови (підсвітка активної)
+            if (currentLang === 'ua') {
+                document.getElementById('btn-lang-ua').className = "flex-1 py-2.5 rounded-xl font-black text-sm border-2 cursor-pointer transition-all bg-zinc-100 text-black border-zinc-100";
+                document.getElementById('btn-lang-en').className = "flex-1 py-2.5 rounded-xl font-black text-sm border-2 cursor-pointer transition-all text-zinc-400 border-zinc-800 hover:border-zinc-700";
             } else {
-                isWorkMode = true;
-                currentRound++;
-                if (currentRound > TOTAL_ROUNDS) {
-                    currentRound = 1; // Цикл зациклюється знову
-                }
-                secondsLeft = TIME_WORK;
+                document.getElementById('btn-lang-ua').className = "flex-1 py-2.5 rounded-xl font-black text-sm border-2 cursor-pointer transition-all text-zinc-400 border-zinc-800 hover:border-zinc-700";
+                document.getElementById('btn-lang-en').className = "flex-1 py-2.5 rounded-xl font-black text-sm border-2 cursor-pointer transition-all bg-zinc-100 text-black border-zinc-100";
             }
-            renderTimer();
-        });
 
-        // Модальне вікно
-        gearBtn.addEventListener('click', () => settingsPopup.classList.remove('hidden'));
-        closePopup.addEventListener('click', () => settingsPopup.classList.add('hidden'));
-        
-        // Локалізація мови
-        function updateLanguage(targetLang) {
-            activeLang = targetLang;
-            localStorage.setItem('boxLangChoice', targetLang);
-
-            if (targetLang === 'ua') {
-                uaBtn.classList.add('active-lang');
-                enBtn.classList.remove('active-lang');
+            // Переклад статичних написів інтерфейсу
+            document.getElementById('lbl-rounds').innerText = pack.lblRounds;
+            document.getElementById('lbl-round-time').innerText = pack.lblRoundTime;
+            document.getElementById('lbl-slow-time').innerText = pack.lblSlowTime;
+            document.getElementById('lbl-fast-time').innerText = pack.lblFastTime;
+            document.getElementById('lbl-rest-time').innerText = pack.lblRestTime;
+            document.getElementById('lbl-prepare-time').innerText = pack.lblPrepareTime;
+            
+            document.getElementById('btn-start').innerText = pack.btnStart;
+            if (!state.isPaused) {
+                document.getElementById('btn-pause').innerText = pack.btnPause;
             } else {
-                enBtn.classList.add('active-lang');
-                uaBtn.classList.remove('active-lang');
+                document.getElementById('btn-pause').innerText = pack.btnResume;
             }
+            document.getElementById('btn-stop').innerText = pack.btnStop;
+            
+            const isFS = document.body.classList.contains('training-fullscreen');
+            document.getElementById('btn-fullscreen-toggle').innerText = isFS ? pack.btnFullscreenOff : pack.btnFullscreenOn;
 
-            menuTitle.textContent = languagePack[targetLang].menuTitle;
-            rulesTitle.textContent = languagePack[targetLang].rulesTitle;
-            rulesParagraph.textContent = languagePack[targetLang].rulesText;
-            authorLabel.textContent = languagePack[targetLang].author;
-            actionBtn.textContent = languagePack[targetLang].btnText;
+            // Переклад модалки
+            document.getElementById('modal-title').innerText = pack.modalTitle;
+            document.getElementById('modal-ins-title').innerText = pack.modalInsTitle;
+            document.getElementById('modal-ins-body').innerText = pack.modalInsBody;
 
-            renderTimer();
+            updateScreen();
         }
 
-        uaBtn.addEventListener('click', () => updateLanguage('ua'));
-        enBtn.addEventListener('click', () => updateLanguage('en'));
+        // Обробник виходу користувача з повного екрана апаратними кнопками телефонів[cite: 1]
+        document.addEventListener('fullscreenchange', () => { //[cite: 1]
+            if (!document.fullscreenElement) { //[cite: 1]
+                document.body.classList.remove('training-fullscreen'); //[cite: 1]
+                document.getElementById('btn-fullscreen-toggle').innerText = i18n[currentLang].btnFullscreenOn;
+            } //[cite: 1]
+        }); //[cite: 1]
 
-        // Автозапуск таймера відразу після відкриття сторінки
-        function init() {
-            const savedLang = localStorage.getItem('boxLangChoice') || 'ua';
-            updateLanguage(savedLang);
-            renderTimer();
-            intervalTimer = setInterval(runTicker, 1000);
-        }
+        // Ініціалізація мови при старті сторінки
+        applyLanguage();
 
-        init();
+        // Спроба підвантаження Service Worker[cite: 1]
+        if ('serviceWorker' in navigator) { //[cite: 1]
+            navigator.serviceWorker.register('sw.js').catch(err => console.log(err)); //[cite: 1]
+        } //[cite: 1]
     </script>
 </body>
 </html>
