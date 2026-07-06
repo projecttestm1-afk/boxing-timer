@@ -104,18 +104,18 @@
             audioUnlocked = true;
         }
 
-        // Відтворення звуку: клонуємо елемент, щоб звуки могли накладатись один на одного
-        // (наприклад, два свистки поспіль або гонг, що ще не дограв)
+        // Відтворення звуку: створюємо новий Audio() з тим самим шляхом при кожному виклику.
+        // Це надійніше за cloneNode(), особливо на мобільних браузерах.
         function playSound(name, volume = 1) {
-            const original = audioCache[name];
-            if (!original) {
-                console.warn(`Файл для "${name}" не завантажено (перевірте sounds/${name}.mp3)`);
+            const src = SOUND_FILES[name];
+            if (!src) {
+                console.warn(`Немає шляху для звуку "${name}"`);
                 return;
             }
             try {
-                const instance = original.cloneNode(true);
+                const instance = new Audio(src);
                 instance.volume = volume;
-                instance.play().catch(e => console.log('Audio play error:', e));
+                instance.play().catch(e => console.log(`Audio play error [${name}]:`, e));
             } catch (e) {
                 console.log('Audio error:', e);
             }
