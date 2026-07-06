@@ -2,624 +2,473 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <!-- Для скидання кешу міняй номер версії тут при кожному апдейті: v=1.0.2 -->
-    <meta name="app-version" content="v=1.0.2">
+    <!-- Для ручного оновлення кешу просто змінюй версію тут (наприклад, на v=1.0.4), коли оновлюєш код -->
+    <meta name="app-version" content="v=1.0.3">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boxing Manual Timer</title>
+    <title>Boxing Flow Timer</title>
     <style>
-        /* Базові стилі та темна атлетична тема */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Arial Black', -apple-system, sans-serif;
             user-select: none;
         }
 
         body {
-            background-color: #121212;
+            background-color: #0a0a0a;
             color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
+            position: relative;
         }
 
-        /* Головний контейнер таймера */
-        .timer-card {
-            background-color: #1e1e1e;
+        /* Динамічний «рідкий» фон, що заливає екран знизу вгору */
+        .bg-liquid-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
             width: 100%;
-            max-width: 450px;
+            height: 100%; /* Керується через JS (від 100% до 0%) */
+            background: linear-gradient(0deg, #ff3300 0%, #ff6600 100%);
+            transition: height 1s linear, background-color 0.5s ease;
+            z-index: 1;
+        }
+
+        /* Колір фону для відпочинку */
+        .bg-liquid-fill.rest-phase {
+            background: linear-gradient(0deg, #00aa50 0%, #00ff66 100%);
+        }
+
+        /* Головна картка інтерфейсу */
+        .timer-interface {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 480px;
             height: 100vh;
-            max-height: 750px;
-            border-radius: 24px;
             padding: 40px 24px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             align-items: center;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid #2d2d2d;
+            background: rgba(0, 0, 0, 0.2); /* Легке затемнення поверх ефекту заливки */
+            backdrop-filter: blur(8px);
         }
 
-        @media (max-width: 480px) {
-            .timer-card {
-                border-radius: 0;
-                max-height: 100vh;
-            }
-        }
-
-        /* Кнопка-шестерня */
-        .settings-gear {
+        /* Кнопка-шестерня у верхньому кутку */
+        .gear-btn {
             position: absolute;
-            top: 24px;
-            right: 24px;
+            top: 30px;
+            right: 30px;
             background: none;
             border: none;
-            font-size: 1.8rem;
+            font-size: 2.2rem;
             cursor: pointer;
-            color: #a0a0a0;
-            transition: color 0.2s, transform 0.2s;
+            color: rgba(255, 255, 255, 0.7);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s;
         }
 
-        .settings-gear:hover {
+        .gear-btn:hover {
+            transform: rotate(90deg);
             color: #ffffff;
-            transform: rotate(45deg);
         }
 
-        /* Індикатори стану та часу */
-        .status-indicator {
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            margin-top: 40px;
+        /* Назва фази (Раунд / Відпочинок) */
+        .phase-title {
+            font-size: 2.5rem;
+            font-weight: 900;
             text-transform: uppercase;
-            color: #ff4500; /* Колір за замовчуванням - бойовий */
+            letter-spacing: 2px;
+            margin-top: 60px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            animation: pulseText 2s infinite ease-in-out;
         }
 
-        .status-indicator.rest {
-            color: #00cc66; /* Зелений для відпочинку */
+        @keyframes pulseText {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
         }
 
-        /* Величезні цифри часу */
-        .huge-digits {
-            font-size: 7.5rem;
-            font-weight: 800;
+        /* ВЕЛИЧЕЗНІ ЦИФРИ (Максимальний фокус) */
+        .huge-timer-digits {
+            font-size: 9.5rem;
+            font-weight: 900;
             line-height: 1;
-            font-variant-numeric: tabular-nums; /* Щоб цифри не стрибали при зміні */
-            margin: 20px 0;
-            cursor: pointer;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+            margin: 10px 0;
             transition: transform 0.1s;
         }
 
-        .huge-digits:active {
-            transform: scale(0.95);
+        /* Анімація екстреного блимання, коли час вийшов */
+        .time-up-blink {
+            animation: urgentFlash 0.6s infinite alternate;
+            color: #fff !important;
         }
 
-        /* Анімація блимання, коли час вийшов */
-        .blink {
-            animation: flash 1s infinite;
+        @keyframes urgentFlash {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.2; transform: scale(1.05); }
         }
 
-        @keyframes flash {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-
-        .round-counter {
-            font-size: 1.3rem;
-            color: #a0a0a0;
-            font-weight: 500;
-            margin-bottom: 40px;
-        }
-
-        /* Додаткова міні-кнопка Паузи/Старту */
-        .play-pause-btn {
-            background-color: #2d2d2d;
-            border: none;
-            color: #fff;
-            padding: 10px 24px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
+        /* Інформація про поточний раунд */
+        .round-info {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 2px 5px rgba(0,0,0,0.3);
             margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
-        /* Розтягнута головна кнопка перемикання */
-        .stretched-btn {
+        /* Кнопка у вигляді великого горизонтального розтягнення */
+        .stretched-action-btn {
             width: 100%;
-            padding: 20px;
-            font-size: 1.2rem;
-            font-weight: 800;
+            padding: 24px;
+            font-size: 1.5rem;
+            font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             border: none;
-            border-radius: 16px;
-            background-color: #ff4500;
-            color: #ffffff;
+            border-radius: 100px; /* Повністю витягнута овальна форма */
+            background-color: #ffffff;
+            color: #000000;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 69, 0, 0.3);
-            transition: transform 0.1s, background-color 0.2s;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s ease, background-color 0.2s;
         }
 
-        .stretched-btn:active {
-            transform: scale(0.98);
+        .stretched-action-btn:active {
+            transform: scale(0.96);
+            background-color: #e6e6e6;
         }
 
-        /* Модальне вікно налаштувань */
-        .modal {
+        /* Модалка налаштувань */
+        .settings-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background-color: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 100;
-            opacity: 1;
-            transition: opacity 0.2s;
         }
 
-        .modal.hidden {
+        .settings-overlay.hidden {
             display: none;
-            opacity: 0;
         }
 
-        .modal-content {
-            background-color: #1e1e1e;
+        .modal-box {
+            background: #161616;
             width: 90%;
             max-width: 400px;
-            border-radius: 20px;
-            padding: 30px 24px;
+            border-radius: 30px;
+            padding: 35px 25px;
             position: relative;
-            border: 1px solid #333;
+            border: 2px solid #262626;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
         }
 
-        .close-btn {
+        .close-modal-x {
             position: absolute;
-            top: 16px;
-            right: 20px;
+            top: 20px;
+            right: 25px;
             background: none;
             border: none;
-            font-size: 2rem;
-            color: #a0a0a0;
+            font-size: 2.5rem;
+            color: #666;
             cursor: pointer;
         }
 
-        .modal h2 {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            font-weight: 700;
+        .close-modal-x:hover {
+            color: #fff;
+        }
+
+        .modal-box h2 {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         /* Перемикач мови */
-        .lang-switch {
+        .language-wrapper {
             display: flex;
-            gap: 10px;
-            margin-bottom: 24px;
+            gap: 15px;
+            margin-bottom: 30px;
         }
 
-        .lang-btn {
+        .lang-option {
             flex: 1;
-            padding: 10px;
-            background-color: #2d2d2d;
-            border: 1px solid #444;
-            color: #a0a0a0;
-            font-weight: 700;
-            border-radius: 10px;
+            padding: 14px;
+            background: #222;
+            border: 2px solid #333;
+            color: #888;
+            font-size: 1.1rem;
+            font-weight: 900;
+            border-radius: 15px;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .lang-btn.active {
-            background-color: #ff4500;
+        .lang-option.active-lang {
+            background: #ff4500;
             color: #fff;
             border-color: #ff4500;
+            box-shadow: 0 5px 15px rgba(255, 69, 0, 0.4);
         }
 
-        /* Кастомізація інпутів часу */
-        .settings-group {
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* Інструкція всередині */
+        .info-block h3 {
+            font-size: 1.2rem;
+            color: #ff5500;
+            margin-bottom: 10px;
+            text-transform: uppercase;
         }
 
-        .settings-group label {
-            color: #d0d0d0;
+        .info-block p {
             font-size: 0.95rem;
-        }
-
-        .settings-group input {
-            width: 80px;
-            background-color: #2d2d2d;
-            border: 1px solid #444;
-            color: #fff;
-            padding: 8px;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        hr {
-            border: 0;
-            height: 1px;
-            background: #333;
-            margin: 20px 0;
-        }
-
-        /* Інструкція */
-        .instructions h3 {
-            font-size: 1.1rem;
-            margin-bottom: 8px;
-            color: #ff4500;
-        }
-
-        .instructions p {
-            font-size: 0.9rem;
             color: #b0b0b0;
-            line-height: 1.4;
+            line-height: 1.5;
+            font-family: system-ui, sans-serif;
         }
 
-        /* Футер з авторством */
-        .modal-footer {
-            margin-top: 30px;
+        /* Авторство та лінк на GitHub без прізвища */
+        .credits-footer {
+            margin-top: 35px;
             text-align: center;
-            font-size: 0.85rem;
-            color: #666;
+            font-size: 0.9rem;
+            color: #555;
+            font-family: system-ui, sans-serif;
         }
 
-        .modal-footer a {
-            color: #a0a0a0;
+        .credits-footer a {
+            color: #ff5500;
             text-decoration: none;
-            font-weight: 600;
+            font-weight: bold;
         }
 
-        .modal-footer a:hover {
+        .credits-footer a:hover {
             text-decoration: underline;
-            color: #ff4500;
         }
     </style>
 </head>
 <body>
 
-    <div class="timer-card">
-        <!-- Кнопка налаштувань у кутку -->
-        <button id="settings-btn" class="settings-gear">⚙️</button>
+    <!-- Рідкий задній фон, який змінює висоту -->
+    <div id="liquid-bg" class="bg-liquid-fill"></div>
 
-        <!-- Етап: Раунд / Відпочинок -->
-        <div id="status-display" class="status-indicator">Раунд</div>
+    <!-- Основний інтерфейс користувача -->
+    <div class="timer-interface">
+        <button id="gear-btn" class="gear-btn">⚙️</button>
 
-        <!-- Головний таймер (можна тапнути для паузи) -->
-        <div id="time-display" class="huge-digits">03:00</div>
+        <div id="phase-text" class="phase-title">Раунд</div>
+        
+        <!-- Лише великі цифри, жодних дрібних повторів -->
+        <div id="big-timer" class="huge-timer-digits">03:00</div>
 
-        <!-- Номер раунду -->
-        <div id="round-display" class="round-counter">Раунд 1/12</div>
+        <div id="round-text" class="round-info">Раунд 1/12</div>
 
-        <!-- Кнопка Паузи/Старту -->
-        <button id="play-pause-btn" class="play-pause-btn">СТАРТ</button>
-
-        <!-- Велика розтягнута кнопка ручного перемикання -->
-        <button id="next-step-btn" class="stretched-btn">НАСТУПНИЙ ЕТАП</button>
+        <!-- Кнопка у вигляді великого розтягнення -->
+        <button id="action-btn" class="stretched-action-btn">НАСТУПНИЙ ЕТАП</button>
     </div>
 
-    <!-- Модалка налаштувань -->
-    <div id="settings-modal" class="modal hidden">
-        <div class="modal-content">
-            <button id="close-modal-btn" class="close-btn">×</button>
-            
-            <h2 id="modal-title">Налаштування</h2>
-            
-            <!-- Вибір мови -->
-            <div class="lang-switch">
-                <button id="lang-ua" class="lang-btn active">УКР</button>
-                <button id="lang-en" class="lang-btn">ENG</button>
+    <!-- Модалка налаштувань мови та інструкції -->
+    <div id="settings-popup" class="settings-overlay hidden">
+        <div class="modal-box">
+            <button id="close-popup" class="close-modal-x">×</button>
+            <h2 id="menu-title">Налаштування</h2>
+
+            <div class="language-wrapper">
+                <button id="ua-btn" class="lang-option active-lang">УКР</button>
+                <button id="en-btn" class="lang-option">ENG</button>
             </div>
 
-            <!-- Конфігурація часу -->
-            <div class="settings-group">
-                <label id="label-work" for="input-work">Час раунду (сек):</label>
-                <input type="number" id="input-work" value="180" min="5">
-            </div>
-            <div class="settings-group">
-                <label id="label-rest" for="input-rest">Час відпочинку (сек):</label>
-                <input type="number" id="input-rest" value="60" min="5">
-            </div>
-            <div class="settings-group">
-                <label id="label-rounds" for="input-rounds">Кількість раундів:</label>
-                <input type="number" id="input-rounds" value="12" min="1">
+            <div class="info-block">
+                <h3 id="rules-title">Інструкція</h3>
+                <p id="rules-paragraph">Час рухається вперед. Коли поточний етап закінчується, екран починає блимати червоним або зеленим коліром. Перехід не автоматичний — натисніть велику розтягнуту кнопку внизу, щоб змінити етап тренування вручну.</p>
             </div>
 
-            <hr>
-
-            <!-- Блок інструкції -->
-            <div class="instructions">
-                <h3 id="instruction-title">Інструкція</h3>
-                <p id="instruction-text">Таймер рахує час поточного етапу. Коли час вийде, він почне блимати. Натисніть велику кнопку «НАСТУПНИЙ ЕТАП» внизу, щоб вручну перейти до наступного раунду чи відпочинку.</p>
-            </div>
-
-            <!-- Авторство у підвалі модалки -->
-            <div class="modal-footer">
-                <span id="label-author">Автор:</span> <a href="https://github.com/твій-профіль" target="_blank">Klikoduev</a>
+            <!-- Посилання на GitHub та чисте ім'я -->
+            <div class="credits-footer">
+                <span id="author-label">Developer:</span> <a href="https://github.com/projecttestm1-afk/boxing-timer" target="_blank">Maksim (GitHub)</a>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. Локалізація (Двомовність)
-        const translations = {
+        // Тексти інтерфейсу
+        const languagePack = {
             ua: {
                 work: "РАУНД",
                 rest: "ВІДПОЧИНОК",
-                round: "Раунд",
-                nextBtn: "НАСТУПНИЙ ЕТАП",
-                settingsTitle: "Налаштування",
-                instructionsTitle: "Інструкція",
-                instruction: "Таймер рахує час поточного етапу. Коли час вийде, він почне блимати. Натисніть велику кнопку «НАСТУПНИЙ ЕТАП» внизу, щоб вручну перейти до наступного раунду чи відпочинку.",
-                workLabel: "Час раунду (сек):",
-                restLabel: "Час відпочинку (сек):",
-                roundsLabel: "Кількість раундів:",
-                authorLabel: "Автор:",
-                start: "СТАРТ",
-                pause: "ПАУЗА",
-                finished: "ТРЕНУВАННЯ ЗАВЕРШЕНО!"
+                roundStr: "Раунд",
+                btnText: "НАСТУПНИЙ ЕТАП",
+                menuTitle: "Налаштування",
+                rulesTitle: "Інструкція",
+                rulesText: "Час рухається вперед. Коли поточний етап закінчується, екран починає блимати червоним або зеленим коліром. Перехід не автоматичний — натисніть велику розтягнуту кнопку внизу, щоб змінити етап тренування вручну.",
+                author: "Автор:"
             },
             en: {
                 work: "ROUND",
                 rest: "REST",
-                round: "Round",
-                nextBtn: "NEXT STEP",
-                settingsTitle: "Settings",
-                instructionsTitle: "Instructions",
-                instruction: "The timer counts down the current phase. When time runs out, it will blink. Press the large 'NEXT STEP' button at the bottom to manually transition to the next round or rest period.",
-                workLabel: "Round time (sec):",
-                restLabel: "Rest time (sec):",
-                roundsLabel: "Total rounds:",
-                authorLabel: "Author:",
-                start: "START",
-                pause: "PAUSE",
-                finished: "WORKOUT FINISHED!"
+                roundStr: "Round",
+                btnText: "NEXT STEP",
+                menuTitle: "Settings",
+                rulesTitle: "Instructions",
+                rulesText: "Time is ticking down. When the current phase ends, the screen will flash intensely. The transition is manual — tap the large stretched button below to advance to the next step.",
+                author: "Developer:"
             }
         };
 
-        // 2. Стани таймера за замовчуванням
-        let workTime = 180; 
-        let restTime = 60;
-        let totalRounds = 12;
-        
+        // Фіксовані налаштування часу для боксу
+        const TIME_WORK = 180; 
+        const TIME_REST = 60;  
+        const TOTAL_ROUNDS = 12;
+
         let currentRound = 1;
-        let isWorkPhase = true; 
-        let timeLeft = workTime;
-        let timerId = null;
-        let isRunning = false;
-        let currentLang = 'ua';
+        let isWorkMode = true;
+        let secondsLeft = TIME_WORK;
+        let intervalTimer = null;
+        let activeLang = 'ua';
 
-        // 3. Елементи інтерфейсу
-        const statusDisplay = document.getElementById('status-display');
-        const timeDisplay = document.getElementById('time-display');
-        const roundDisplay = document.getElementById('round-display');
-        const playPauseBtn = document.getElementById('play-pause-btn');
-        const nextStepBtn = document.getElementById('next-step-btn');
+        // DOM Елементи
+        const liquidBg = document.getElementById('liquid-bg');
+        const phaseText = document.getElementById('phase-text');
+        const bigTimer = document.getElementById('big-timer');
+        const roundText = document.getElementById('round-text');
+        const actionBtn = document.getElementById('action-btn');
         
-        const settingsBtn = document.getElementById('settings-btn');
-        const settingsModal = document.getElementById('settings-modal');
-        const closeModalBtn = document.getElementById('close-modal-btn');
-        
-        const langUaBtn = document.getElementById('lang-ua');
-        const langEnBtn = document.getElementById('lang-en');
-        const inputWork = document.getElementById('input-work');
-        const inputRest = document.getElementById('input-rest');
-        const inputRounds = document.getElementById('input-rounds');
+        const gearBtn = document.getElementById('gear-btn');
+        const settingsPopup = document.getElementById('settings-popup');
+        const closePopup = document.getElementById('close-popup');
+        const uaBtn = document.getElementById('ua-btn');
+        const enBtn = document.getElementById('en-btn');
 
-        // Текстові мітки модалки
-        const modalTitle = document.getElementById('modal-title');
-        const labelWork = document.getElementById('label-work');
-        const labelRest = document.getElementById('label-rest');
-        const labelRounds = document.getElementById('label-rounds');
-        const instructionTitle = document.getElementById('instruction-title');
-        const instructionText = document.getElementById('instruction-text');
-        const labelAuthor = document.getElementById('label-author');
+        const menuTitle = document.getElementById('menu-title');
+        const rulesTitle = document.getElementById('rules-title');
+        const rulesParagraph = document.getElementById('rules-paragraph');
+        const authorLabel = document.getElementById('author-label');
 
-        // 4. Синтезатор звуку (Електронний гонг)
-        function playSound(isEndBell = false) {
+        // Електронний звуковий сигнал закінчення часу
+        function triggerBell() {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                
-                if (isEndBell) {
-                    // Симуляція потрійного жорсткого удару гонгу
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // Ре
-                    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-                    osc.start();
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
-                    osc.stop(ctx.currentTime + 0.6);
-                } else {
-                    // Звичайний писк старту/кліку
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(880, ctx.currentTime);
-                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                    osc.start();
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-                    osc.stop(ctx.currentTime + 0.15);
-                }
-            } catch (e) {
-                console.log("Аудіо контекст заблоковано браузером. Потрібен перший клік.");
-            }
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const nodeGain = audioCtx.createGain();
+                osc.connect(nodeGain);
+                nodeGain.connect(audioCtx.destination);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(650, audioCtx.currentTime);
+                nodeGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                osc.start();
+                nodeGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.stop(audioCtx.currentTime + 0.5);
+            } catch(e) { console.log("Чекаємо взаємодії з екраном для звуку."); }
         }
 
-        // 5. Форматування часу (00:00)
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-            const secs = (seconds % 60).toString().padStart(2, '0');
-            return `${mins}:${secs}`;
-        }
+        // Обчислення та відображення
+        function renderTimer() {
+            const minutes = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+            const seconds = (secondsLeft % 60).toString().padStart(2, '0');
+            bigTimer.textContent = `${minutes}:${seconds}`;
 
-        // Оновлення основного екрана
-        function updateUI() {
-            timeDisplay.textContent = formatTime(timeLeft);
+            const activeMaxTime = isWorkMode ? TIME_WORK : TIME_REST;
             
-            if (currentRound > totalRounds) {
-                statusDisplay.textContent = translations[currentLang].finished;
-                roundDisplay.textContent = "";
-                timeDisplay.textContent = "00:00";
-                pauseTimer();
-                return;
+            // Ефект плавної заливки рідкого фону (відсоток залишку часу)
+            const percentage = (secondsLeft / activeMaxTime) * 100;
+            liquidBg.style.height = `${percentage}%`;
+
+            if (isWorkMode) {
+                phaseText.textContent = languagePack[activeLang].work;
+                liquidBg.classList.remove('rest-phase');
+            } else {
+                phaseText.textContent = languagePack[activeLang].rest;
+                liquidBg.classList.add('rest-phase');
             }
 
-            if (isWorkPhase) {
-                statusDisplay.textContent = translations[currentLang].work;
-                statusDisplay.classList.remove('rest');
-            } else {
-                statusDisplay.textContent = translations[currentLang].rest;
-                statusDisplay.classList.add('rest');
-            }
+            roundText.textContent = `${languagePack[activeLang].roundStr} ${currentRound}/${TOTAL_ROUNDS}`;
 
-            roundDisplay.textContent = `${translations[currentLang].round} ${currentRound}/${totalRounds}`;
-            
-            // Якщо час вийшов — вмикаємо блимання
-            if (timeLeft === 0) {
-                timeDisplay.classList.add('blink');
+            // Якщо час вийшов — вмикаємо жорстке блимання екрана
+            if (secondsLeft === 0) {
+                bigTimer.classList.add('time-up-blink');
             } else {
-                timeDisplay.classList.remove('blink');
+                bigTimer.classList.remove('time-up-blink');
             }
         }
 
-        // 6. Логіка роботи таймера (Плідна щосекундна робота)
-        function tick() {
-            if (timeLeft > 0) {
-                timeLeft--;
-                if (timeLeft === 0) {
-                    playSound(true); // Гучний сигнал завершення етапу
+        function runTicker() {
+            if (secondsLeft > 0) {
+                secondsLeft--;
+                if (secondsLeft === 0) {
+                    triggerBell();
                 }
-                updateUI();
+                renderTimer();
             }
         }
 
-        function startTimer() {
-            if (!isRunning && currentRound <= totalRounds) {
-                isRunning = true;
-                timerId = setInterval(tick, 1000);
-                playPauseBtn.textContent = translations[currentLang].pause;
-                playSound();
-            }
-        }
-
-        function pauseTimer() {
-            isRunning = false;
-            clearInterval(timerId);
-            playPauseBtn.textContent = translations[currentLang].start;
-        }
-
-        function toggleTimer() {
-            if (isRunning) pauseTimer();
-            else startTimer();
-        }
-
-        // Керування ручним перемиканням етапів (Велика розтягнута кнопка)
-        function handleNextStep() {
-            playSound();
-            if (isWorkPhase) {
-                // Переходимо на відпочинок
-                isWorkPhase = false;
-                timeLeft = restTime;
+        // Керування кнопкою-розтягненням (ручне перегортання)
+        actionBtn.addEventListener('click', () => {
+            if (isWorkMode) {
+                isWorkMode = false;
+                secondsLeft = TIME_REST;
             } else {
-                // Переходимо на новий раунд
-                isWorkPhase = true;
+                isWorkMode = true;
                 currentRound++;
-                timeLeft = workTime;
+                if (currentRound > TOTAL_ROUNDS) {
+                    currentRound = 1; // Цикл зациклюється знову
+                }
+                secondsLeft = TIME_WORK;
             }
-            updateUI();
-            // Якщо таймер працював, продовжуємо зворотний відлік автоматично на новому етапі
-            if (isRunning && currentRound <= totalRounds) {
-                clearInterval(timerId);
-                timerId = setInterval(tick, 1000);
-            }
-        }
-
-        // 7. Робота з налаштуваннями
-        function loadSettings() {
-            workTime = parseInt(inputWork.value) || 180;
-            restTime = parseInt(inputRest.value) || 60;
-            totalRounds = parseInt(inputRounds.value) || 12;
-            
-            // Скидаємо таймер на початок з новими параметрами
-            currentRound = 1;
-            isWorkPhase = true;
-            timeLeft = workTime;
-            updateUI();
-        }
-
-        // Перемикач мов
-        function switchLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('boxingTimerLang', lang);
-
-            if (lang === 'ua') {
-                langUaBtn.classList.add('active');
-                langEnBtn.classList.remove('active');
-            } else {
-                langEnBtn.classList.add('active');
-                langUaBtn.classList.remove('active');
-            }
-
-            // Переклад модалки
-            modalTitle.textContent = translations[lang].settingsTitle;
-            labelWork.textContent = translations[lang].workLabel;
-            labelRest.textContent = translations[lang].restLabel;
-            labelRounds.textContent = translations[lang].roundsLabel;
-            instructionTitle.textContent = translations[lang].instructionsTitle;
-            instructionText.textContent = translations[lang].instruction;
-            labelAuthor.textContent = translations[lang].authorLabel;
-            nextStepBtn.textContent = translations[lang].nextBtn;
-            
-            if (isRunning) {
-                playPauseBtn.textContent = translations[lang].pause;
-            } else {
-                playPauseBtn.textContent = translations[lang].start;
-            }
-
-            updateUI();
-        }
-
-        // 8. Події (EventListeners)
-        playPauseBtn.addEventListener('click', toggleTimer);
-        timeDisplay.addEventListener('click', toggleTimer); // Тап по цифрах теж ставить паузу
-        nextStepBtn.addEventListener('click', handleNextStep);
-
-        // Вікно налаштувань
-        settingsBtn.addEventListener('click', () => {
-            pauseTimer();
-            settingsModal.classList.remove('hidden');
+            renderTimer();
         });
 
-        const closeModal = () => {
-            loadSettings(); // При закритті автоматично зберігаємо і застосовуємо цифри
-            settingsModal.classList.add('hidden');
-        };
+        // Модальне вікно
+        gearBtn.addEventListener('click', () => settingsPopup.classList.remove('hidden'));
+        closePopup.addEventListener('click', () => settingsPopup.classList.add('hidden'));
+        
+        // Локалізація мови
+        function updateLanguage(targetLang) {
+            activeLang = targetLang;
+            localStorage.setItem('boxLangChoice', targetLang);
 
-        closeModalBtn.addEventListener('click', closeModal);
-        window.addEventListener('click', (e) => { if (e.target === settingsModal) closeModal(); });
+            if (targetLang === 'ua') {
+                uaBtn.classList.add('active-lang');
+                enBtn.classList.remove('active-lang');
+            } else {
+                enBtn.classList.add('active-lang');
+                uaBtn.classList.remove('active-lang');
+            }
 
-        // Перемикачі мови
-        langUaBtn.addEventListener('click', () => switchLanguage('ua'));
-        langEnBtn.addEventListener('click', () => switchLanguage('en'));
+            menuTitle.textContent = languagePack[targetLang].menuTitle;
+            rulesTitle.textContent = languagePack[targetLang].rulesTitle;
+            rulesParagraph.textContent = languagePack[targetLang].rulesText;
+            authorLabel.textContent = languagePack[targetLang].author;
+            actionBtn.textContent = languagePack[targetLang].btnText;
 
-        // Ініціалізація при старті сторінки
-        const savedLang = localStorage.getItem('boxingTimerLang') || 'ua';
-        switchLanguage(savedLang);
-        loadSettings();
+            renderTimer();
+        }
+
+        uaBtn.addEventListener('click', () => updateLanguage('ua'));
+        enBtn.addEventListener('click', () => updateLanguage('en'));
+
+        // Автозапуск таймера відразу після відкриття сторінки
+        function init() {
+            const savedLang = localStorage.getItem('boxLangChoice') || 'ua';
+            updateLanguage(savedLang);
+            renderTimer();
+            intervalTimer = setInterval(runTicker, 1000);
+        }
+
+        init();
     </script>
 </body>
 </html>
