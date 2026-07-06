@@ -19,8 +19,14 @@
         .phase-burst   { background-color: #dc2626; } /* Червоний - вибух */
         .phase-rest    { background-color: #4b5563; } /* Сірий - відпочинок */
 
-        /* Повноекранний режим тренування: картка розтягується на весь екран,
-           а цифри стають величезними (масштабуються від ширини вʼюпорта) */
+        /* Повноекранний режим тренування: весь body фарбується кольором поточної
+           фази (через CSS-змінну --phase-color), а картка стає прозорою —
+           так колір заливає екран повністю, без "недофарбованого" низу */
+        body.training-fullscreen {
+            background-color: var(--phase-color, #121212);
+            transition: background-color 0.5s;
+            padding: 0;
+        }
         body.training-fullscreen .app-card {
             max-width: 100%;
             width: 100%;
@@ -31,6 +37,9 @@
             flex-direction: column;
             justify-content: center;
             border: none;
+            background-color: transparent !important;
+            box-shadow: none;
+            overflow: hidden;
         }
         body.training-fullscreen #status-card {
             flex: 1;
@@ -40,20 +49,38 @@
             align-items: center;
             margin-bottom: 0;
             border-radius: 0;
+            background-color: transparent !important;
+            min-height: 0;
         }
+        /* vmin (не vw!) — розмір рахується від МЕНШОЇ сторони екрана,
+           тому цифри не роздуваються при переворотах у горизонтальний режим */
         body.training-fullscreen #timer-display {
-            font-size: clamp(6rem, 32vw, 18rem);
+            font-size: clamp(4rem, 28vmin, 16rem);
             line-height: 1;
             margin-bottom: 1rem;
         }
         body.training-fullscreen #round-title {
-            font-size: clamp(1.25rem, 5vw, 2rem);
+            font-size: clamp(1.1rem, 6vmin, 2rem);
+            flex-shrink: 0;
         }
         body.training-fullscreen #phase-title {
-            font-size: clamp(1rem, 4vw, 1.5rem);
+            font-size: clamp(0.9rem, 5vmin, 1.5rem);
+            flex-shrink: 0;
         }
         body.training-fullscreen #total-time {
-            font-size: clamp(0.9rem, 3vw, 1.25rem);
+            font-size: clamp(0.8rem, 4vmin, 1.25rem);
+            flex-shrink: 0;
+        }
+        /* В горизонтальній орієнтації менше вертикального простору —
+           трохи стискаємо відступи, щоб round-title гарантовано влазив */
+        @media (orientation: landscape) {
+            body.training-fullscreen #status-card {
+                padding: 1rem;
+            }
+            body.training-fullscreen #timer-display {
+                font-size: clamp(3rem, 22vmin, 12rem);
+                margin-bottom: 0.5rem;
+            }
         }
     </style>
 
@@ -234,7 +261,13 @@
             const el = document.documentElement;
             const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
             if (req) {
-                req.call(el).catch(() => {}); // Ігноруємо, якщо браузер відмовив (напр. desktop без жесту)
+                req.call(el).then(() => {
+                    // Намагаємось заблокувати портретну орієнтацію (працює на Android Chrome
+                    // у fullscreen; на iOS Safari API відсутнє — там орієнтацію контролює сам iOS)
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('portrait').catch(() => {});
+                    }
+                }).catch(() => {});
             }
         }
 
@@ -377,6 +410,24 @@
         }
 
         // ==================== ВІДОБРАЖЕННЯ НА ЕКРАНІ ====================
+        // Кольори фаз (мають збігатись зі значеннями в CSS-класах .phase-*)
+        const PHASE_COLORS = {
+            'phase-prepare': '#1e3a8a',
+            'phase-normal':  '#16a34a',
+            'phase-run':     '#0ea5e9',
+            'phase-burst':   '#dc2626',
+            'phase-rest':    '#4b5563'
+        };
+
+        // Встановлює клас фази на картці ТА синхронізує колір фону всього
+        // екрана (через CSS-змінну), щоб у повноекранному режимі заливка
+        // була суцільною, а не тільки у верхній картці
+        function setStatusPhase(phaseClass) {
+            const statusCard = document.getElementById('status-card');
+            statusCard.className = `rounded-2xl p-6 mb-6 transition-colors duration-500 ${phaseClass}`;
+            document.body.style.setProperty('--phase-color', PHASE_COLORS[phaseClass] || '#121212');
+        }
+
         function updateScreen() {
             const statusCard = document.getElementById('status-card');
             const roundTitle = document.getElementById('round-title');
@@ -385,7 +436,7 @@
             const totalTime = document.getElementById('total-time');
 
             if (state.phase === 'PREPARE') {
-                statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-prepare";
+                setStatusPhase('phase-prepare');
                 roundTitle.innerText = "ПІДГОТОВКА";
                 phaseTitle.innerText = config.isNormalMode ? "Готуємося до БОЮ" : "Готуємося до РУХУ";
                 timerDisplay.innerText = state.timeRemaining > 0 ? state.timeRemaining : "ГО!";
@@ -397,37 +448,37 @@
 
                 if (config.isNormalMode) {
                     // Зелений - класичний бокс
-                    statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-normal";
+                    setStatusPhase('phase-normal');
                     phaseTitle.innerText = "🥊 БІЙ 🥊";
                     timerDisplay.innerText = formatTime(state.timeRemaining);
                 } else {
                     // Інтервали: Голубий або Червоний
                     if (state.isBurst) {
-                        statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-burst";
+                        setStatusPhase('phase-burst');
                         phaseTitle.innerText = "⚡ ВИБУХ (ШВИДКО) ⚡";
                     } else {
-                        statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-run";
+                        setStatusPhase('phase-run');
                         phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
                     }
                     timerDisplay.innerText = formatTime(state.subPhaseTime);
                 }
             }
             else if (state.phase === 'REST') {
-                statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-rest";
+                setStatusPhase('phase-rest');
                 roundTitle.innerText = "ВІДПОЧИНОК";
                 phaseTitle.innerText = `Готуйтесь до раунду ${state.currentRound + 1}`;
                 timerDisplay.innerText = state.timeRemaining <= 5 ? state.timeRemaining : formatTime(state.timeRemaining);
                 totalTime.innerText = "Відновлюйте дихання";
             }
             else if (state.phase === 'FINISHED') {
-                statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-prepare";
+                setStatusPhase('phase-prepare');
                 roundTitle.innerText = "🏆 КІНЕЦЬ 🏆";
                 phaseTitle.innerText = "Тренування завершено!";
                 timerDisplay.innerText = "00:00";
                 totalTime.innerText = "Чудова робота!";
             }
             else if (state.phase === 'STOPPED') {
-                statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-prepare";
+                setStatusPhase('phase-prepare');
                 roundTitle.innerText = "ЗУПИНЕНО";
                 phaseTitle.innerText = "Тренування перервано";
                 timerDisplay.innerText = "00:00";
