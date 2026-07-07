@@ -398,6 +398,38 @@
             return isNaN(val) || val < 0 ? defaultVal : val;
         }
 
+        // ==================== ЗБЕРЕЖЕННЯ НАЛАШТУВАНЬ ====================
+        const SETTINGS_INPUT_IDS = [
+            'input-rounds', 'input-round-time', 'input-slow-time',
+            'input-fast-time', 'input-rest-time', 'input-prepare-time'
+        ];
+
+        function saveSettings() {
+            const values = {};
+            SETTINGS_INPUT_IDS.forEach(id => {
+                values[id] = document.getElementById(id).value;
+            });
+            try { localStorage.setItem('boxtimer-settings', JSON.stringify(values)); } catch (e) {}
+        }
+
+        function loadSettings() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('boxtimer-settings'));
+                if (!saved) return;
+                SETTINGS_INPUT_IDS.forEach(id => {
+                    if (saved[id] !== undefined) document.getElementById(id).value = saved[id];
+                });
+            } catch (e) {}
+        }
+
+        // Відновлюємо збережені значення одразу при завантаженні сторінки
+        loadSettings();
+
+        // Зберігаємо кожного разу, коли користувач міняє будь-яке поле
+        SETTINGS_INPUT_IDS.forEach(id => {
+            document.getElementById(id).addEventListener('change', saveSettings);
+        });
+
         function formatTime(s) {
             if (s < 0) s = 0;
             const m = Math.floor(s / 60).toString().padStart(2, '0');
@@ -455,6 +487,7 @@
         // ==================== ГОЛОВНИЙ КОНТРОЛЕР ====================
         async function startTraining() {
             unlockAudio();
+            saveSettings();
             await requestWakeLock();
 
             // Збираємо налаштування
@@ -701,9 +734,20 @@
         // ==================== SERVICE WORKER ====================
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+
+            // Коли нова версія sw.js бере контроль над сторінкою (після того,
+            // як ти заливаєш оновлення і бампаєш CACHE_NAME) - перезавантажуємо
+            // один раз, щоб користувач одразу побачив нову версію, а не стару
+            // з пам'яті вкладки. reloaded-прапорець захищає від зациклення.
+            let reloaded = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (reloaded) return;
+                reloaded = true;
+                window.location.reload();
+            });
         }
+        <script data-goatcounter="https://boxing-timer.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
     </script>
 </body>
 </html>
-<script data-goatcounter="https://boxing-timer.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
