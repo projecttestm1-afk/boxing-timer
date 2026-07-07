@@ -223,6 +223,10 @@
 
             <div class="mt-6 pt-4 border-t border-zinc-800 text-center">
                 <p id="modal-footer-text" class="text-xs text-zinc-500">Box & Run Interval Timer</p>
+                <p class="text-xs text-zinc-600 mt-1">
+                    <span id="modal-author-label">Автор</span>:
+                    <a href="https://github.com/projecttestm1-afk/boxing-timer" target="_blank" rel="noopener" class="underline hover:text-zinc-400">GitHub</a>
+                </p>
             </div>
         </div>
     </div>
@@ -250,6 +254,7 @@
                     "Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань."
                 ],
                 footer: "Box & Run Interval Timer",
+                authorLabel: "Автор",
                 settingsLabels: {
                     rounds: "Раундів",
                     roundTime: "Раунд (сек)",
@@ -303,6 +308,7 @@
                     "To actually rotate your phone sideways — turn off rotation lock in your quick settings."
                 ],
                 footer: "Box & Run Interval Timer",
+                authorLabel: "Author",
                 settingsLabels: {
                     rounds: "Rounds",
                     roundTime: "Round (sec)",
@@ -368,6 +374,7 @@
             document.getElementById('modal-instructions-text').innerHTML =
                 t.instructions.map(line => `<li>${line}</li>`).join('');
             document.getElementById('modal-footer-text').innerText = t.footer;
+            document.getElementById('modal-author-label').innerText = t.authorLabel;
             document.documentElement.lang = lang;
 
             // Підписи полів налаштувань
