@@ -83,6 +83,20 @@
             }
         }
 
+        body.training-fullscreen .app-card > .flex.justify-between {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            right: 0.75rem;
+            z-index: 10;
+            margin-bottom: 0;
+        }
+        body.training-fullscreen .app-card > .flex.justify-between button {
+            background-color: rgba(0,0,0,0.25);
+            width: 2.25rem;
+            height: 2.25rem;
+        }
+
         /* ФОЛБЕК: якщо телефон фізично тримають вертикально (портрет),
            а screen.orientation.lock не спрацював (Safari/iOS не підтримує
            цей API взагалі) — примусово розвертаємо вміст на 90°, щоб
@@ -104,8 +118,6 @@
             }
         }
     </style>
-    <script data-goatcounter="https://boxing-timer.goatcounter.com/count"
-        асинхронний src="//gc.zgo.at/count.js"></script>
 
     <!-- ==================== АНАЛІТИКА (GoatCounter) ====================
          1. Зареєструйся на https://www.goatcounter.com (безкоштовно)
@@ -117,7 +129,20 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 transition-colors duration-500">
 
-    <div class="app-card w-full max-w-md bg-zinc-900/90 rounded-3xl p-6 shadow-2xl border border-zinc-800 text-center">
+    <div class="app-card w-full max-w-md bg-zinc-900/90 rounded-3xl p-6 shadow-2xl border border-zinc-800 text-center relative">
+
+        <!-- Верхня панель: шестерня (налаштування) і розтягнення (великі цифри) -->
+        <div class="flex justify-between items-center mb-4">
+            <button id="btn-expand" onclick="toggleFullscreenView()" title="Розтягнути на весь екран"
+                class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-lg transition-colors">
+                ⤢
+            </button>
+            <button id="btn-gear" onclick="openSettingsModal()" title="Налаштування"
+                class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-lg transition-colors">
+                ⚙️
+            </button>
+        </div>
+
         <!-- Картка статусу -->
         <div id="status-card" class="phase-prepare rounded-2xl p-6 mb-6 transition-colors duration-500 shadow-lg">
             <h2 id="round-title" class="text-2xl font-black tracking-wider uppercase mb-1">Гонг Чекає</h2>
@@ -166,7 +191,111 @@
         </div>
     </div>
 
+    <!-- ==================== МОДАЛКА НАЛАШТУВАНЬ ==================== -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="bg-zinc-900 rounded-3xl p-6 w-full max-w-md max-h-[85vh] overflow-y-auto border border-zinc-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modal-title" class="text-xl font-black uppercase">Налаштування</h3>
+                <button onclick="closeSettingsModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300">✕</button>
+            </div>
+
+            <!-- Вибір мови -->
+            <div class="mb-5">
+                <p id="modal-lang-label" class="text-xs text-zinc-400 font-black uppercase mb-2">Мова</p>
+                <div class="flex gap-3">
+                    <button id="btn-lang-uk" onclick="setLanguage('uk')" class="flex-1 py-2 rounded-xl font-bold bg-blue-600 text-white">УКР</button>
+                    <button id="btn-lang-en" onclick="setLanguage('en')" class="flex-1 py-2 rounded-xl font-bold bg-zinc-800 text-zinc-300">ENG</button>
+                </div>
+            </div>
+
+            <!-- Інструкція -->
+            <div>
+                <p id="modal-instructions-label" class="text-xs text-zinc-400 font-black uppercase mb-2">Як користуватись</p>
+                <ul id="modal-instructions-text" class="text-sm text-zinc-300 space-y-2 leading-relaxed list-disc list-inside">
+                    <li>Встанови кількість раундів і тривалість раунду.</li>
+                    <li>Поля "Рух" і "Вибух" — заповни, якщо хочеш інтервальний режим (наприклад, човниковий біг). Залиш 0 і 0 для звичайного боксу без інтервалів.</li>
+                    <li>Тисни СТАРТ — почнеться відлік підготовки, потім гонг і перший раунд.</li>
+                    <li>Кнопка ПАУЗА зупиняє і продовжує таймер з того самого місця.</li>
+                    <li>Кнопка ⤢ у верхньому лівому куті розтягує цифри на весь екран.</li>
+                    <li>Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань.</li>
+                </ul>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-zinc-800 text-center">
+                <p id="modal-footer-text" class="text-xs text-zinc-500">Box & Run Interval Timer</p>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // ==================== НАЛАШТУВАННЯ / МОВА ====================
+        function openSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+
+        const TRANSLATIONS = {
+            uk: {
+                modalTitle: "Налаштування",
+                langLabel: "Мова",
+                instructionsLabel: "Як користуватись",
+                instructions: [
+                    "Встанови кількість раундів і тривалість раунду.",
+                    "Поля \"Рух\" і \"Вибух\" — заповни, якщо хочеш інтервальний режим (наприклад, човниковий біг). Залиш 0 і 0 для звичайного боксу без інтервалів.",
+                    "Тисни СТАРТ — почнеться відлік підготовки, потім гонг і перший раунд.",
+                    "Кнопка ПАУЗА зупиняє і продовжує таймер з того самого місця.",
+                    "Кнопка ⤢ у верхньому лівому куті розтягує цифри на весь екран.",
+                    "Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань."
+                ],
+                footer: "Box & Run Interval Timer"
+            },
+            en: {
+                modalTitle: "Settings",
+                langLabel: "Language",
+                instructionsLabel: "How to use",
+                instructions: [
+                    "Set the number of rounds and round duration.",
+                    "\"Move\" and \"Burst\" fields — fill them in for interval mode (e.g. shuttle runs). Leave both at 0 for classic boxing without intervals.",
+                    "Tap START — a prep countdown begins, then a gong and the first round.",
+                    "The PAUSE button stops and resumes the timer from the same spot.",
+                    "The ⤢ button in the top-left corner stretches the numbers to full screen.",
+                    "To actually rotate your phone sideways — turn off rotation lock in your quick settings."
+                ],
+                footer: "Box & Run Interval Timer"
+            }
+        };
+
+        let currentLang = localStorage.getItem('boxtimer-lang') || 'uk';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            try { localStorage.setItem('boxtimer-lang', lang); } catch (e) {}
+
+            const t = TRANSLATIONS[lang];
+            document.getElementById('modal-title').innerText = t.modalTitle;
+            document.getElementById('modal-lang-label').innerText = t.langLabel;
+            document.getElementById('modal-instructions-label').innerText = t.instructionsLabel;
+            document.getElementById('modal-instructions-text').innerHTML =
+                t.instructions.map(line => `<li>${line}</li>`).join('');
+            document.getElementById('modal-footer-text').innerText = t.footer;
+            document.documentElement.lang = lang;
+
+            // Підсвічуємо активну кнопку мови
+            const ukBtn = document.getElementById('btn-lang-uk');
+            const enBtn = document.getElementById('btn-lang-en');
+            if (lang === 'uk') {
+                ukBtn.className = "flex-1 py-2 rounded-xl font-bold bg-blue-600 text-white";
+                enBtn.className = "flex-1 py-2 rounded-xl font-bold bg-zinc-800 text-zinc-300";
+            } else {
+                enBtn.className = "flex-1 py-2 rounded-xl font-bold bg-blue-600 text-white";
+                ukBtn.className = "flex-1 py-2 rounded-xl font-bold bg-zinc-800 text-zinc-300";
+            }
+        }
+
+        setLanguage(currentLang); // Застосовуємо збережену мову одразу при завантаженні
+
         // ==================== АУДІО ДВИЖОК (РЕАЛЬНІ ФАЙЛИ) ====================
         // Кладіть свої mp3-файли у папку /sounds поруч з index.html
         // Точні назви файлів, які очікує цей код:
@@ -310,9 +439,21 @@
             }
         }
 
+        function toggleFullscreenView() {
+            const expandBtn = document.getElementById('btn-expand');
+            if (document.body.classList.contains('training-fullscreen')) {
+                exitFullscreenMode();
+                expandBtn.innerText = '⤢';
+                expandBtn.title = 'Розтягнути на весь екран';
+            } else {
+                enterFullscreenMode();
+                expandBtn.innerText = '⤡';
+                expandBtn.title = 'Згорнути';
+            }
+        }
+
         // ==================== ГОЛОВНИЙ КОНТРОЛЕР ====================
         async function startTraining() {
-            enterFullscreenMode(); // ОБОВ'ЯЗКОВО першим і синхронно — інакше браузер відхилить запит
             unlockAudio();
             await requestWakeLock();
 
@@ -442,7 +583,6 @@
             clearInterval(timerInterval);
             stopAllSounds(); // Обриваємо звуки минулої фази
             playGong(); // ФІНАЛЬНИЙ ГОНГ
-            exitFullscreenMode();
 
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
@@ -457,7 +597,6 @@
             state.phase = 'STOPPED';
             state.isPaused = false;
             updateScreen();
-            exitFullscreenMode();
 
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
@@ -501,15 +640,18 @@
             }
             else if (state.phase === 'ROUND') {
                 roundTitle.innerText = `Раунд ${state.currentRound} / ${config.rounds}`;
-                totalTime.innerText = `Час раунду: ${formatTime(state.timeRemaining)}`;
 
                 if (config.isNormalMode) {
-                    // Зелений - класичний бокс
+                    // Зелений - класичний бокс. totalTime тут прибираємо -
+                    // він би дублював великий таймер один в один
                     setStatusPhase('phase-normal');
                     phaseTitle.innerText = "🥊 БІЙ 🥊";
                     timerDisplay.innerText = formatTime(state.timeRemaining);
+                    totalTime.innerText = "";
                 } else {
-                    // Інтервали: Голубий або Червоний
+                    // Інтервали: тут totalTime корисний - показує час ДО КІНЦЯ РАУНДУ,
+                    // поки великий таймер показує час поточного інтервалу (рух/вибух)
+                    totalTime.innerText = `Раунд закінчиться через: ${formatTime(state.timeRemaining)}`;
                     if (state.isBurst) {
                         setStatusPhase('phase-burst');
                         phaseTitle.innerText = "⚡ ВИБУХ (ШВИДКО) ⚡";
@@ -548,6 +690,11 @@
         document.addEventListener('fullscreenchange', () => {
             if (!document.fullscreenElement) {
                 document.body.classList.remove('training-fullscreen');
+                const expandBtn = document.getElementById('btn-expand');
+                if (expandBtn) {
+                    expandBtn.innerText = '⤢';
+                    expandBtn.title = 'Розтягнути на весь екран';
+                }
             }
         });
 
@@ -559,4 +706,4 @@
 </body>
 </html>
 <script data-goatcounter="https://boxing-timer.goatcounter.com/count"
-        асинхронний src="//gc.zgo.at/count.js"></script>
+        async src="//gc.zgo.at/count.js"></script>
