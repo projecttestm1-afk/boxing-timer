@@ -106,7 +106,6 @@
             }
         }
 
-        /* Додаткові стилі для нових елементів */
         .drill-section {
             border-top: 1px solid #2a2a2a;
             margin-top: 1rem;
@@ -147,6 +146,28 @@
             width: 60px;
             accent-color: #22c55e;
         }
+
+        /* Стилі для кнопок пресетів */
+        .preset-btn {
+            background: #1e293b;
+            border: 1px solid #334155;
+            transition: all 0.15s;
+            font-weight: 700;
+            padding: 0.4rem 0.8rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .preset-btn:hover {
+            background: #334155;
+            transform: scale(1.02);
+        }
+        .preset-btn.active {
+            background: #3b82f6;
+            border-color: #60a5fa;
+            color: #fff;
+        }
     </style>
 
     <!-- ==================== АНАЛІТИКА (GoatCounter) ==================== -->
@@ -183,6 +204,14 @@
 
         <!-- Налаштування + Дрили -->
         <div id="settings-box" class="text-left mb-6">
+            <!-- === НОВИЙ БЛОК: КНОПКИ ПРЕСЕТІВ (РЕЖИМИ) === -->
+            <div class="flex flex-wrap gap-2 mb-4 justify-center">
+                <button class="preset-btn" data-preset="boxing" onclick="applyPreset('boxing')">🥊 Бокс</button>
+                <button class="preset-btn" data-preset="interval" onclick="applyPreset('interval')">⏱️ Інтервали</button>
+                <button class="preset-btn" data-preset="sprint" onclick="applyPreset('sprint')">🏃 Спринт</button>
+                <button class="preset-btn" data-preset="custom" onclick="applyPreset('custom')">✏️ Власний</button>
+            </div>
+
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label id="label-rounds" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раундів</label>
@@ -210,7 +239,7 @@
                 </div>
             </div>
 
-            <!-- === НОВИЙ БЛОК: ДРИЛИ === -->
+            <!-- === БЛОК ДРИЛІВ === -->
             <div class="drill-section">
                 <div class="flex flex-wrap items-end gap-3">
                     <div class="flex-1 min-w-[120px]">
@@ -274,6 +303,7 @@
                     <li>Кнопка ⤢ у верхньому лівому куті розтягує цифри на весь екран.</li>
                     <li>Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань.</li>
                     <li><span class="text-purple-400">Нове:</span> обирай тип комбінації, кількість повторів і тисни "Виконати" — голосове озвучення та свистки допоможуть відпрацювати.</li>
+                    <li><span class="text-blue-400">Швидкі режими:</span> кнопки "Бокс", "Інтервали", "Спринт" — миттєво задають оптимальні налаштування.</li>
                 </ul>
             </div>
 
@@ -290,7 +320,6 @@
     <!-- ===== ПРИХОВАНИЙ АУДІО-ПЛЕЄР ДЛЯ МУЗИКИ ===== -->
     <audio id="music-player" loop class="hidden">
         <source src="my-training-mix.mp3" type="audio/mpeg">
-        <!-- Якщо немає файлу, можна використати fallback (тиша) -->
     </audio>
 
     <script>
@@ -314,7 +343,8 @@
                     "Кнопка ПАУЗА зупиняє і продовжує таймер з того самого місця.",
                     "Кнопка ⤢ у верхньому лівому куті розтягує цифри на весь екран.",
                     "Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань.",
-                    "Нове: обирай тип комбінації, кількість повторів і тисни \"Виконати\" — голосове озвучення та свистки допоможуть відпрацювати."
+                    "Нове: обирай тип комбінації, кількість повторів і тисни \"Виконати\" — голосове озвучення та свистки допоможуть відпрацювати.",
+                    "Швидкі режими: кнопки \"Бокс\", \"Інтервали\", \"Спринт\" — миттєво задають оптимальні налаштування."
                 ],
                 footer: "Box & Run Interval Timer",
                 authorLabel: "Автор",
@@ -375,7 +405,8 @@
                     "The PAUSE button stops and resumes the timer from the same spot.",
                     "The ⤢ button in the top-left corner stretches the numbers to full screen.",
                     "To actually rotate your phone sideways — turn off rotation lock in your quick settings.",
-                    "New: choose a drill type, repeats, and press 'Execute' — voice guidance and whistles help you practice."
+                    "New: choose a drill type, repeats, and press 'Execute' — voice guidance and whistles help you practice.",
+                    "Quick presets: buttons \"Boxing\", \"Intervals\", \"Sprint\" — instantly set optimal parameters."
                 ],
                 footer: "Box & Run Interval Timer",
                 authorLabel: "Author",
@@ -489,7 +520,7 @@
             whistle:  'sounds/whistle.mp3',
             warning:  'sounds/warning.mp3',
             tick:     'sounds/tick.mp3',
-            applause: 'sounds/applause.mp3'   // Новий звук
+            applause: 'sounds/applause.mp3'
         };
 
         const audioCache = {};
@@ -563,6 +594,36 @@
             }
         }
 
+        // ==================== ПРЕСЕТИ (ШВИДКІ РЕЖИМИ) ====================
+        const PRESETS = {
+            boxing: { rounds: 3, roundTime: 180, slow: 0, fast: 0, rest: 60, prepare: 5 },
+            interval: { rounds: 5, roundTime: 60, slow: 20, fast: 10, rest: 30, prepare: 5 },
+            sprint: { rounds: 8, roundTime: 30, slow: 10, fast: 5, rest: 15, prepare: 5 },
+            custom: { rounds: 3, roundTime: 180, slow: 0, fast: 0, rest: 60, prepare: 5 } // залишає поточні значення
+        };
+
+        function applyPreset(name) {
+            const p = PRESETS[name];
+            if (!p) return;
+            if (name === 'custom') {
+                // нічого не змінюємо, просто знімаємо активний стан
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                document.querySelector('.preset-btn[data-preset="custom"]')?.classList.add('active');
+                return;
+            }
+            document.getElementById('input-rounds').value = p.rounds;
+            document.getElementById('input-round-time').value = p.roundTime;
+            document.getElementById('input-slow-time').value = p.slow;
+            document.getElementById('input-fast-time').value = p.fast;
+            document.getElementById('input-rest-time').value = p.rest;
+            document.getElementById('input-prepare-time').value = p.prepare;
+            // Зберігаємо налаштування
+            saveSettings();
+            // Підсвічуємо активну кнопку
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.preset-btn[data-preset="${name}"]`)?.classList.add('active');
+        }
+
         // ==================== ДРИЛИ ====================
         const DRILLS = {
             attack: ["Двійка, зсув", "Джеб, крос, хук", "Прямий, аперкот", "Крос, хук, крок назад"],
@@ -587,18 +648,13 @@
             const repeats = parseInt(document.getElementById('input-repeats').value) || 3;
             const typeLabel = getDrillLabel(type);
 
-            // Озвучуємо
             speak(`${typeLabel}: ${selectedCombo}, ${repeats} разів`);
-
-            // Пауза для підготовки
             await sleep(2000);
 
             for (let i = 0; i < repeats; i++) {
                 playOneWhistle();
                 await sleep(1500);
             }
-
-            // Коротке повідомлення про завершення серії
             speak("Готово");
         }
 
@@ -798,7 +854,7 @@
                     if (!config.isNormalMode && state.subPhaseTime <= 0) {
                         state.isBurst = !state.isBurst;
                         state.subPhaseTime = state.isBurst ? config.burstDur : config.runDur;
-                        playOneWhistle();
+                        playOneWhistle(); // випадковий свисток - залишено!
                     }
                 }
             }
@@ -838,13 +894,9 @@
             stopAllSounds();
             playGong();
 
-            // Озвучуємо номер раунду (голосом)
             const T = TRANSLATIONS[currentLang].status;
             const roundText = T.roundTitle(state.currentRound, config.rounds);
             speak(roundText);
-
-            // Якщо не інтервальний режим — можна запропонувати дрил (але не автоматично)
-            // Користувач сам натисне "Виконати"
         }
 
         function startRest() {
@@ -862,17 +914,14 @@
             clearInterval(timerInterval);
             stopAllSounds();
 
-            // Фінальні ефекти
             playApplause();
             const T = TRANSLATIONS[currentLang].status;
-            speak("Час вийшов! Ай, молодець, гарна робота!"); // українською завжди для емоції
+            speak("Час вийшов! Ай, молодець, гарна робота!");
 
-            // Візуальний фінал
             const card = document.getElementById('status-card');
             card.classList.add('bg-yellow-600');
             document.getElementById('round-title').innerText = "🏆 ЧЕМПІОН! 🏆";
 
-            // Також оновлюємо стандартний текст
             updateScreen();
 
             document.getElementById('settings-box').classList.remove('hidden');
@@ -889,7 +938,6 @@
             state.isPaused = false;
             updateScreen();
 
-            // Якщо був фінальний жовтий фон — прибираємо
             document.getElementById('status-card').classList.remove('bg-yellow-600');
 
             document.getElementById('settings-box').classList.remove('hidden');
@@ -910,7 +958,6 @@
 
         function setStatusPhase(phaseClass) {
             const statusCard = document.getElementById('status-card');
-            // Якщо фініш — не змінюємо фон (він жовтий)
             if (state.phase === 'FINISHED') return;
             statusCard.className = `rounded-2xl p-6 mb-6 transition-colors duration-500 ${phaseClass}`;
             document.body.style.setProperty('--phase-color', PHASE_COLORS[phaseClass] || '#121212');
@@ -958,7 +1005,7 @@
                 totalTime.innerText = T.breathe;
             }
             else if (state.phase === 'FINISHED') {
-                // Фон вже жовтий, не чіпаємо
+                // фон жовтий, не змінюємо
                 roundTitle.innerText = T.finishedTitle;
                 phaseTitle.innerText = T.finishedSubtitle;
                 timerDisplay.innerText = "00:00";
@@ -1007,6 +1054,8 @@
 
         // ==================== ІНІЦІАЛІЗАЦІЯ ====================
         setLanguage(currentLang);
+        // Активуємо кнопку "Власний" за замовчуванням
+        document.querySelector('.preset-btn[data-preset="custom"]')?.classList.add('active');
     </script>
 </body>
 </html>
