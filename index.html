@@ -123,13 +123,50 @@
             outline: none;
             border-color: #3b82f6;
         }
-        .drill-btn {
-            background: #8b5cf6;
+        .drill-toggle {
+            background: #2d2d2d;
             transition: all 0.2s;
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            font-weight: bold;
+            border: 1px solid #4a4a4a;
+            cursor: pointer;
         }
-        .drill-btn:hover {
-            background: #7c3aed;
-            transform: scale(1.02);
+        .drill-toggle.active {
+            background: #8b5cf6;
+            border-color: #a78bfa;
+            color: #fff;
+        }
+        .intensity-btn {
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 0.3rem 1rem;
+            border-radius: 1.5rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+        .intensity-btn.active {
+            background: #3b82f6;
+            border-color: #60a5fa;
+            color: #fff;
+        }
+        .drill-options {
+            margin-top: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .drill-options label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            cursor: pointer;
         }
         .music-btn {
             background: #2d2d2d;
@@ -145,59 +182,6 @@
         #music-volume {
             width: 60px;
             accent-color: #22c55e;
-        }
-
-        .preset-btn {
-            background: #1e293b;
-            border: 1px solid #334155;
-            transition: all 0.15s;
-            font-weight: 700;
-            padding: 0.4rem 0.8rem;
-            border-radius: 2rem;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .preset-btn:hover {
-            background: #334155;
-            transform: scale(1.02);
-        }
-        .preset-btn.active {
-            background: #3b82f6;
-            border-color: #60a5fa;
-            color: #fff;
-        }
-
-        /* Для радіо-кнопок дрилів */
-        .drill-radio-group {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-        .drill-radio-group label {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: #cbd5e1;
-            cursor: pointer;
-        }
-        .drill-radio-group input[type="radio"] {
-            accent-color: #8b5cf6;
-            width: 1rem;
-            height: 1rem;
-        }
-        .drill-hint {
-            font-size: 0.7rem;
-            color: #94a3b8;
-            margin-left: 0.5rem;
-        }
-        .drill-progress {
-            font-size: 0.9rem;
-            color: #a78bfa;
-            font-weight: bold;
         }
     </style>
 
@@ -233,16 +217,9 @@
             <p id="total-time" class="text-sm text-zinc-400 font-bold">Час раунду: 00:00</p>
         </div>
 
-        <!-- Налаштування + Дрили -->
+        <!-- Налаштування -->
         <div id="settings-box" class="text-left mb-6">
-            <!-- Пресети режимів -->
-            <div class="flex flex-wrap gap-2 mb-4 justify-center">
-                <button class="preset-btn" data-preset="boxing" onclick="applyPreset('boxing')">🥊 Бокс</button>
-                <button class="preset-btn" data-preset="interval" onclick="applyPreset('interval')">⏱️ Інтервали</button>
-                <button class="preset-btn" data-preset="sprint" onclick="applyPreset('sprint')">🏃 Спринт</button>
-                <button class="preset-btn" data-preset="custom" onclick="applyPreset('custom')">✏️ Власний</button>
-            </div>
-
+            <!-- Поля налаштувань (без пресетів) -->
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label id="label-rounds" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раундів</label>
@@ -270,50 +247,45 @@
                 </div>
             </div>
 
-            <!-- ===== ПОКРАЩЕНИЙ БЛОК ДРИЛІВ ===== -->
+            <!-- ===== НОВИЙ БЛОК ДРИЛІВ (без пресетів) ===== -->
             <div class="drill-section">
-                <div class="flex flex-wrap items-end gap-3">
-                    <div class="flex-1 min-w-[120px]">
-                        <label class="text-xs text-purple-400 font-black uppercase block mb-1">Тип комбінації</label>
-                        <select id="drill-type" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-2 text-white font-bold focus:outline-none focus:border-purple-500">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-purple-400">Дрил</span>
+                    <button id="drill-toggle" class="drill-toggle" onclick="toggleDrill()">Вимк.</button>
+                </div>
+
+                <div id="drill-controls" class="drill-options" style="display:none;">
+                    <div>
+                        <label class="text-xs text-purple-400 font-black uppercase">Тип</label>
+                        <select id="drill-type" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-1 text-white font-bold">
                             <option value="attack">⚔️ Атака</option>
                             <option value="defense">🛡️ Захист</option>
                             <option value="counter">💥 Контратака</option>
                             <option value="meeting">🤝 Зустрічна</option>
                         </select>
                     </div>
-                    <div class="w-20">
-                        <label class="text-xs text-purple-400 font-black uppercase block mb-1">Кількість</label>
-                        <input type="number" id="input-drill-count" value="3" min="1" max="10" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-2 text-white font-bold text-center focus:outline-none focus:border-purple-500">
+                    <div>
+                        <label class="text-xs text-purple-400 font-black uppercase block">Інтенсивність</label>
+                        <div class="flex gap-1 mt-1">
+                            <button class="intensity-btn" data-intensity="15" onclick="setIntensity(this,15)">Легка</button>
+                            <button class="intensity-btn active" data-intensity="10" onclick="setIntensity(this,10)">Сер.</button>
+                            <button class="intensity-btn" data-intensity="5" onclick="setIntensity(this,5)">Важка</button>
+                        </div>
                     </div>
-                    <button onclick="executeDrill()" class="drill-btn flex-1 py-2 px-3 rounded-xl text-white font-black uppercase text-sm tracking-wide shadow-lg shadow-purple-900/30">
-                        🥊 Виконати
-                    </button>
-                </div>
-
-                <!-- Радіо-кнопки: одна комбінація або серія -->
-                <div class="drill-radio-group mt-2">
                     <label>
-                        <input type="radio" name="drill-mode" value="single" checked>
-                        1 комбінація
+                        <input type="checkbox" id="drill-free" onchange="updateDrillMode()">
+                        <span class="text-sm">Вільний (без голосу)</span>
                     </label>
-                    <label>
-                        <input type="radio" name="drill-mode" value="series">
-                        Серія
-                    </label>
-                    <span class="drill-hint" id="drill-hint">(повторювати вказану кількість разів)</span>
                 </div>
+            </div>
 
-                <!-- Індикатор прогресу (з'являється під час виконання) -->
-                <div id="drill-progress" class="drill-progress mt-1 hidden"></div>
-
-                <div class="mt-3 flex items-center gap-3 flex-wrap">
-                    <button id="music-toggle" onclick="toggleMusic()" class="music-btn flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-sm">
-                        <span id="music-icon">🔇</span> <span id="music-label">Музика</span>
-                    </button>
-                    <input type="range" id="music-volume" min="0" max="100" value="30" class="w-24">
-                    <label for="music-volume" class="text-xs text-zinc-400">гучність</label>
-                </div>
+            <!-- Музика -->
+            <div class="mt-3 flex items-center gap-3 flex-wrap">
+                <button id="music-toggle" onclick="toggleMusic()" class="music-btn flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-sm">
+                    <span id="music-icon">🔇</span> <span id="music-label">Музика</span>
+                </button>
+                <input type="range" id="music-volume" min="0" max="100" value="30" class="w-24">
+                <label for="music-volume" class="text-xs text-zinc-400">гучність</label>
             </div>
         </div>
 
@@ -344,14 +316,13 @@
             <div>
                 <p id="modal-instructions-label" class="text-xs text-zinc-400 font-black uppercase mb-2">Як користуватись</p>
                 <ul id="modal-instructions-text" class="text-sm text-zinc-300 space-y-2 leading-relaxed list-disc list-inside">
-                    <li>Встанови кількість раундів і тривалість раунду.</li>
-                    <li>Поля "Рух" і "Вибух" — заповни, якщо хочеш інтервальний режим (наприклад, човниковий біг). Залиш 0 і 0 для звичайного боксу без інтервалів.</li>
-                    <li>Тисни СТАРТ — почнеться відлік підготовки, потім гонг і перший раунд.</li>
-                    <li>Кнопка ПАУЗА зупиняє і продовжує таймер з того самого місця.</li>
-                    <li>Кнопка ⤢ у верхньому лівому куті розтягує цифри на весь екран.</li>
-                    <li>Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань.</li>
-                    <li><span class="text-purple-400">Дрили:</span> обирай тип, кількість і режим (одна комбінація або серія). Натисни "Виконати" — голос підкаже завдання, а свисток позначить початок.</li>
-                    <li><span class="text-blue-400">Швидкі режими:</span> кнопки "Бокс", "Інтервали", "Спринт" — миттєво задають оптимальні налаштування.</li>
+                    <li>Встанови кількість раундів, тривалість, відпочинок та підготовку.</li>
+                    <li>Поля "Рух" і "Вибух" – для інтервального режиму (0 і 0 – звичайний бій).</li>
+                    <li>Увімкни <span class="text-purple-400">Дрил</span> – під час раундів лунатимуть свистки і (за бажанням) голосові підказки з комбінаціями обраного типу.</li>
+                    <li>Інтенсивність регулює час між сигналами: Легка (15с), Середня (10с), Важка (5с).</li>
+                    <li>Режим "Вільний" – тільки свистки, без голосу – ви самі обираєте рухи.</li>
+                    <li>Кнопка ПАУЗА зупиняє таймер і дрил.</li>
+                    <li>⤢ – повноекранний режим.</li>
                 </ul>
             </div>
 
@@ -385,14 +356,13 @@
                 langLabel: "Мова",
                 instructionsLabel: "Як користуватись",
                 instructions: [
-                    "Встанови кількість раундів і тривалість раунду.",
-                    "Поля \"Рух\" і \"Вибух\" — заповни, якщо хочеш інтервальний режим (наприклад, човниковий біг). Залиш 0 і 0 для звичайного боксу без інтервалів.",
-                    "Тисни СТАРТ — почнеться відлік підготовки, потім гонг і перший раунд.",
-                    "Кнопка ПАУЗА зупиняє і продовжує таймер з того самого місця.",
-                    "Кнопка ⤢ у верхньому лівому куті розтягує цифри на весь екран.",
-                    "Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань.",
-                    "Дрили: обирай тип, кількість і режим (одна комбінація або серія). Натисни \"Виконати\" — голос підкаже завдання, а свисток позначить початок.",
-                    "Швидкі режими: кнопки \"Бокс\", \"Інтервали\", \"Спринт\" — миттєво задають оптимальні налаштування."
+                    "Встанови кількість раундів, тривалість, відпочинок та підготовку.",
+                    "Поля \"Рух\" і \"Вибух\" – для інтервального режиму (0 і 0 – звичайний бій).",
+                    "Увімкни Дрил – під час раундів лунатимуть свистки і (за бажанням) голосові підказки з комбінаціями обраного типу.",
+                    "Інтенсивність регулює час між сигналами: Легка (15с), Середня (10с), Важка (5с).",
+                    "Режим \"Вільний\" – тільки свистки, без голосу – ви самі обираєте рухи.",
+                    "Кнопка ПАУЗА зупиняє таймер і дрил.",
+                    "⤢ – повноекранний режим."
                 ],
                 footer: "Box & Run Interval Timer",
                 authorLabel: "Автор",
@@ -440,10 +410,6 @@
                     defense: "🛡️ Захист",
                     counter: "💥 Контратака",
                     meeting: "🤝 Зустрічна"
-                },
-                drillHints: {
-                    single: "(повторювати вказану кількість разів)",
-                    series: "(виконати різні комбінації)"
                 }
             },
             en: {
@@ -451,14 +417,13 @@
                 langLabel: "Language",
                 instructionsLabel: "How to use",
                 instructions: [
-                    "Set the number of rounds and round duration.",
-                    "\"Move\" and \"Burst\" fields — fill them in for interval mode (e.g. shuttle runs). Leave both at 0 for classic boxing without intervals.",
-                    "Tap START — a prep countdown begins, then a gong and the first round.",
-                    "The PAUSE button stops and resumes the timer from the same spot.",
-                    "The ⤢ button in the top-left corner stretches the numbers to full screen.",
-                    "To actually rotate your phone sideways — turn off rotation lock in your quick settings.",
-                    "Drills: choose type, count and mode (single combo or series). Press \"Execute\" — voice guides you, whistle marks the start.",
-                    "Quick presets: buttons \"Boxing\", \"Intervals\", \"Sprint\" — instantly set optimal parameters."
+                    "Set number of rounds, duration, rest and prep.",
+                    "\"Move\" and \"Burst\" fields – for interval mode (0 and 0 for normal fight).",
+                    "Turn on Drill – during rounds, whistles and (optionally) voice prompts with combos of selected type.",
+                    "Intensity controls time between signals: Light (15s), Medium (10s), Heavy (5s).",
+                    "\"Free\" mode – only whistles, no voice – you choose your own moves.",
+                    "PAUSE stops the timer and drill.",
+                    "⤢ – fullscreen mode."
                 ],
                 footer: "Box & Run Interval Timer",
                 authorLabel: "Author",
@@ -506,10 +471,6 @@
                     defense: "🛡️ Defense",
                     counter: "💥 Counter",
                     meeting: "🤝 Meeting"
-                },
-                drillHints: {
-                    single: "(repeat the specified number of times)",
-                    series: "(perform different combinations)"
                 }
             }
         };
@@ -568,19 +529,6 @@
                     option.text = drillLabels[key];
                 }
             }
-
-            // Оновити підказки для радіо
-            document.querySelectorAll('input[name="drill-mode"]').forEach(radio => {
-                radio.addEventListener('change', updateDrillHint);
-            });
-            updateDrillHint();
-        }
-
-        function updateDrillHint() {
-            const mode = document.querySelector('input[name="drill-mode"]:checked').value;
-            const hint = document.getElementById('drill-hint');
-            const hints = TRANSLATIONS[currentLang].drillHints;
-            hint.textContent = mode === 'single' ? hints.single : hints.series;
         }
 
         // ==================== АУДІО ДВИЖОК ====================
@@ -663,34 +611,7 @@
             }
         }
 
-        // ==================== ПРЕСЕТИ (ШВИДКІ РЕЖИМИ) ====================
-        const PRESETS = {
-            boxing: { rounds: 3, roundTime: 180, slow: 0, fast: 0, rest: 60, prepare: 5 },
-            interval: { rounds: 5, roundTime: 60, slow: 20, fast: 10, rest: 30, prepare: 5 },
-            sprint: { rounds: 8, roundTime: 30, slow: 10, fast: 5, rest: 15, prepare: 5 },
-            custom: { rounds: 3, roundTime: 180, slow: 0, fast: 0, rest: 60, prepare: 5 }
-        };
-
-        function applyPreset(name) {
-            const p = PRESETS[name];
-            if (!p) return;
-            if (name === 'custom') {
-                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-                document.querySelector('.preset-btn[data-preset="custom"]')?.classList.add('active');
-                return;
-            }
-            document.getElementById('input-rounds').value = p.rounds;
-            document.getElementById('input-round-time').value = p.roundTime;
-            document.getElementById('input-slow-time').value = p.slow;
-            document.getElementById('input-fast-time').value = p.fast;
-            document.getElementById('input-rest-time').value = p.rest;
-            document.getElementById('input-prepare-time').value = p.prepare;
-            saveSettings();
-            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector(`.preset-btn[data-preset="${name}"]`)?.classList.add('active');
-        }
-
-        // ==================== ПОКРАЩЕНІ ДРИЛИ ====================
+        // ==================== ДРИЛ (НОВА ЛОГІКА) ====================
         const DRILLS = {
             attack: ["Двійка, зсув", "Джеб, крос, хук", "Прямий, аперкот", "Крос, хук, крок назад"],
             defense: ["Ухил вліво, ухил вправо", "Підсів, блок, крок назад", "Блок, крок, ухил"],
@@ -698,94 +619,95 @@
             meeting: ["Зустрічний джеб", "Зустрічний аперкот", "Зустрічний хук з кроком"]
         };
 
-        function getDrillLabel(type) {
-            const labels = TRANSLATIONS[currentLang].drillLabels;
-            return labels[type] || type;
-        }
+        let drillEnabled = false;
+        let drillInterval = 10; // секунд між сигналами (за замовчуванням середня)
+        let drillFree = false;
+        let drillTimerId = null;
+        let drillNextTime = 0; // час (в секундах від початку раунду) наступного сигналу
 
-        let drillRunning = false;
-
-        async function executeDrill() {
-            if (drillRunning) {
-                speak("Зачекайте, поточний дрил ще виконується");
-                return;
-            }
-
-            const type = document.getElementById('drill-type').value;
-            const combos = DRILLS[type];
-            if (!combos || combos.length === 0) {
-                speak("Немає комбінацій для цього типу");
-                return;
-            }
-
-            const mode = document.querySelector('input[name="drill-mode"]:checked').value;
-            const count = parseInt(document.getElementById('input-drill-count').value) || 1;
-            if (count < 1) return;
-
-            drillRunning = true;
-            const progressDiv = document.getElementById('drill-progress');
-            progressDiv.classList.remove('hidden');
-
-            // Визначаємо список комбінацій для виконання
-            let drillList = [];
-            if (mode === 'single') {
-                // Одна комбінація, повторюється count разів
-                const combo = combos[Math.floor(Math.random() * combos.length)];
-                for (let i = 0; i < count; i++) {
-                    drillList.push(combo);
-                }
+        function toggleDrill() {
+            drillEnabled = !drillEnabled;
+            const btn = document.getElementById('drill-toggle');
+            const controls = document.getElementById('drill-controls');
+            if (drillEnabled) {
+                btn.textContent = 'Увімк.';
+                btn.classList.add('active');
+                controls.style.display = 'flex';
             } else {
-                // Серія: count різних комбінацій (якщо можливо)
-                const shuffled = [...combos].sort(() => Math.random() - 0.5);
-                const available = shuffled.slice(0, Math.min(count, shuffled.length));
-                // Якщо треба більше, ніж є, повторюємо з початку
-                while (available.length < count) {
-                    available.push(...shuffled.slice(0, count - available.length));
-                }
-                drillList = available.slice(0, count);
-            }
-
-            const total = drillList.length;
-            const typeLabel = getDrillLabel(type);
-
-            for (let i = 0; i < total; i++) {
-                const combo = drillList[i];
-                // Оновлюємо картку статусу
-                document.getElementById('round-title').innerText = `${typeLabel} (${i+1}/${total})`;
-                document.getElementById('phase-title').innerText = combo;
-                progressDiv.textContent = `${i+1} / ${total}`;
-
-                // Озвучуємо комбінацію
-                speak(combo);
-
-                // Свисток на початку кожної комбінації (крім першої, бо вона вже почалася)
-                if (i > 0) {
-                    playOneWhistle();
-                } else {
-                    // Для першої – теж свисток, але з невеликою затримкою після голосу
-                    await sleep(500);
-                    playOneWhistle();
-                }
-
-                // Час на виконання (2 секунди + пауза)
-                await sleep(2500);
-            }
-
-            // Завершення
-            progressDiv.classList.add('hidden');
-            document.getElementById('round-title').innerText = "✅ Дрил завершено";
-            document.getElementById('phase-title').innerText = "Можна повторювати";
-            speak("Дрил виконано");
-
-            drillRunning = false;
-            // Відновлюємо стандартний вигляд, якщо таймер не активний
-            if (state.phase === 'STOPPED' || state.phase === 'FINISHED') {
-                updateScreen();
+                btn.textContent = 'Вимк.';
+                btn.classList.remove('active');
+                controls.style.display = 'none';
+                stopDrillTimer();
             }
         }
 
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
+        function setIntensity(btn, seconds) {
+            document.querySelectorAll('.intensity-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            drillInterval = seconds;
+            // Якщо дрил активний і раунд іде – перерахувати наступний час
+            if (drillEnabled && state.phase === 'ROUND' && !state.isPaused) {
+                scheduleDrill();
+            }
+        }
+
+        function updateDrillMode() {
+            drillFree = document.getElementById('drill-free').checked;
+        }
+
+        function startDrillTimer() {
+            if (!drillEnabled || state.phase !== 'ROUND' || state.isPaused) return;
+            stopDrillTimer();
+            // Плануємо перший сигнал через drillInterval секунд від початку раунду
+            // Але ми хочемо, щоб сигнали були рівномірно, починаючи з першого інтервалу.
+            // Використовуємо час, який вже пройшов у поточному раунді.
+            const elapsed = config.roundDur - state.timeRemaining;
+            // Знаходимо найближчий момент, кратний drillInterval, після поточного часу
+            const next = Math.ceil(elapsed / drillInterval) * drillInterval;
+            drillNextTime = next;
+            scheduleDrill();
+        }
+
+        function scheduleDrill() {
+            if (drillTimerId) clearTimeout(drillTimerId);
+            const elapsed = config.roundDur - state.timeRemaining;
+            const delay = Math.max(0, (drillNextTime - elapsed) * 1000);
+            if (delay > 0 && state.phase === 'ROUND' && !state.isPaused && drillEnabled) {
+                drillTimerId = setTimeout(() => {
+                    fireDrillSignal();
+                }, delay);
+            }
+        }
+
+        function fireDrillSignal() {
+            if (state.phase !== 'ROUND' || state.isPaused || !drillEnabled) {
+                stopDrillTimer();
+                return;
+            }
+            // Свисток
+            playOneWhistle();
+
+            // Якщо не вільний режим – голосова підказка
+            if (!drillFree) {
+                const type = document.getElementById('drill-type').value;
+                const combos = DRILLS[type];
+                if (combos && combos.length > 0) {
+                    const combo = combos[Math.floor(Math.random() * combos.length)];
+                    speak(combo);
+                }
+            }
+
+            // Плануємо наступний сигнал через drillInterval секунд
+            const elapsed = config.roundDur - state.timeRemaining;
+            drillNextTime = Math.ceil(elapsed / drillInterval) * drillInterval + drillInterval;
+            scheduleDrill();
+        }
+
+        function stopDrillTimer() {
+            if (drillTimerId) {
+                clearTimeout(drillTimerId);
+                drillTimerId = null;
+            }
         }
 
         // ==================== МУЗИКА ====================
@@ -980,7 +902,14 @@
                     if (!config.isNormalMode && state.subPhaseTime <= 0) {
                         state.isBurst = !state.isBurst;
                         state.subPhaseTime = state.isBurst ? config.burstDur : config.runDur;
-                        playOneWhistle(); // випадковий свисток – залишено
+                        playOneWhistle(); // випадковий свисток при зміні фаз (залишено)
+                    }
+                    // Оновлюємо дрил-таймер, якщо він активний
+                    if (drillEnabled && !state.isPaused) {
+                        // Перевіряємо, чи потрібно перепланувати (якщо таймер не встановлено)
+                        if (!drillTimerId) {
+                            startDrillTimer();
+                        }
                     }
                 }
             }
@@ -1002,10 +931,14 @@
             if (state.isPaused) {
                 state.isPaused = false;
                 timerInterval = setInterval(tick, 1000);
+                if (drillEnabled && state.phase === 'ROUND') {
+                    startDrillTimer();
+                }
             } else {
                 state.isPaused = true;
                 clearInterval(timerInterval);
                 timerInterval = null;
+                stopDrillTimer();
             }
             refreshButtonLabels();
             updateScreen();
@@ -1023,12 +956,18 @@
             const T = TRANSLATIONS[currentLang].status;
             const roundText = T.roundTitle(state.currentRound, config.rounds);
             speak(roundText);
+
+            // Запускаємо дрил, якщо він увімкнений
+            if (drillEnabled) {
+                startDrillTimer();
+            }
         }
 
         function startRest() {
             state.phase = 'REST';
             state.timeRemaining = config.restDur;
             stopAllSounds();
+            stopDrillTimer();
             playGong();
             const T = TRANSLATIONS[currentLang].status;
             speak(T.restTitle + '. ' + T.restSubtitle(state.currentRound + 1));
@@ -1039,6 +978,7 @@
             state.timeRemaining = 0;
             clearInterval(timerInterval);
             stopAllSounds();
+            stopDrillTimer();
 
             playApplause();
             const T = TRANSLATIONS[currentLang].status;
@@ -1060,6 +1000,7 @@
         function stopTraining() {
             clearInterval(timerInterval);
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
+            stopDrillTimer();
             state.phase = 'STOPPED';
             state.isPaused = false;
             updateScreen();
@@ -1096,9 +1037,6 @@
             const totalTime = document.getElementById('total-time');
             const T = TRANSLATIONS[currentLang].status;
 
-            // Якщо виконується дрил, не оновлюємо статус (він уже змінений)
-            if (drillRunning) return;
-
             if (state.phase === 'PREPARE') {
                 setStatusPhase('phase-prepare');
                 roundTitle.innerText = T.prepareTitle;
@@ -1134,7 +1072,6 @@
                 totalTime.innerText = T.breathe;
             }
             else if (state.phase === 'FINISHED') {
-                // фон жовтий, не змінюємо
                 roundTitle.innerText = T.finishedTitle;
                 phaseTitle.innerText = T.finishedSubtitle;
                 timerDisplay.innerText = "00:00";
@@ -1183,12 +1120,10 @@
 
         // ==================== ІНІЦІАЛІЗАЦІЯ ====================
         setLanguage(currentLang);
-        document.querySelector('.preset-btn[data-preset="custom"]')?.classList.add('active');
-        // Підписатися на зміну радіо
-        document.querySelectorAll('input[name="drill-mode"]').forEach(radio => {
-            radio.addEventListener('change', updateDrillHint);
-        });
-        updateDrillHint();
+        // Активуємо середню інтенсивність за замовчуванням
+        document.querySelector('.intensity-btn.active')?.click();
+        // Вимкнено дрил за замовчуванням
+        document.getElementById('drill-controls').style.display = 'none';
     </script>
 </body>
 </html>
