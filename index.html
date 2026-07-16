@@ -45,40 +45,33 @@
         .intensity-btn.active { background: #3b82f6; border-color: #60a5fa; color: #fff; }
         .drill-options { margin-top: 0.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; }
         .drill-options label { font-size: 0.8rem; font-weight: bold; color: #cbd5e1; display: flex; align-items: center; gap: 0.3rem; cursor: pointer; }
-        .music-btn { background: #2d2d2d; transition: all 0.2s; }
+        .music-btn { background: #2d2d2d; transition: all 0.2s; padding: 0.3rem 1rem; border-radius: 1.5rem; font-weight: bold; border: none; color: #fff; }
         .music-btn:hover { background: #3d3d3d; }
         .music-btn.playing { background: #22c55e; color: #000; }
         #music-volume { width: 60px; accent-color: #22c55e; }
     </style>
 
-    <!-- GoatCounter – замініть на свій код -->
     <script data-goatcounter="https://ЗАМІНИ-МЕНЕ.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 transition-colors duration-500">
 
     <div class="app-card w-full max-w-md bg-zinc-900/90 rounded-3xl p-6 shadow-2xl border border-zinc-800 text-center relative">
 
-        <!-- Верхня панель -->
         <div class="flex justify-between items-center mb-4">
-            <button id="btn-expand" onclick="toggleFullscreenView()" title="Розтягнути на весь екран"
-                class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-lg transition-colors">⤢</button>
-            <button id="btn-gear" onclick="openSettingsModal()" title="Налаштування"
-                class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-lg transition-colors">⚙️</button>
+            <button id="btn-expand" onclick="toggleFullscreenView()" title="Розтягнути на весь екран" class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-lg transition-colors">⤢</button>
+            <button id="btn-gear" onclick="openSettingsModal()" title="Налаштування" class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-lg transition-colors">⚙️</button>
         </div>
 
-        <!-- Картка статусу -->
         <div id="status-card" class="phase-prepare rounded-2xl p-6 mb-6 transition-colors duration-500 shadow-lg">
             <h2 id="round-title" class="text-2xl font-black tracking-wider uppercase mb-1">Гонг Чекає</h2>
             <p id="phase-title" class="text-xl font-bold opacity-90 text-white">Налаштуйте та тисніть Старт</p>
         </div>
 
-        <!-- Головний таймер -->
         <div class="mb-6 relative">
             <div id="timer-display" class="text-7xl font-black font-mono tracking-tight text-white mb-2">00:00</div>
             <p id="total-time" class="text-sm text-zinc-400 font-bold">Час раунду: 00:00</p>
         </div>
 
-        <!-- Налаштування -->
         <div id="settings-box" class="text-left mb-6">
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -107,13 +100,11 @@
                 </div>
             </div>
 
-            <!-- Дрил -->
             <div class="drill-section">
                 <div class="flex items-center justify-between">
                     <span class="text-sm font-bold text-purple-400">Дрил</span>
                     <button id="drill-toggle" class="drill-toggle" onclick="toggleDrill()">Вимк.</button>
                 </div>
-
                 <div id="drill-controls" class="drill-options" style="display:none;">
                     <div>
                         <label class="text-xs text-purple-400 font-black uppercase">Тип</label>
@@ -143,7 +134,6 @@
                 </div>
             </div>
 
-            <!-- Музика -->
             <div class="mt-3 flex items-center gap-3 flex-wrap">
                 <button id="music-toggle" onclick="toggleMusic()" class="music-btn flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-sm">
                     <span id="music-icon">🔇</span> <span id="music-label">Музика</span>
@@ -153,7 +143,6 @@
             </div>
         </div>
 
-        <!-- Кнопки -->
         <div class="flex gap-4">
             <button id="btn-start" onclick="startTraining()" class="flex-1 bg-green-600 hover:bg-green-500 active:scale-95 text-white font-black py-4 rounded-2xl tracking-wide transition-all shadow-lg shadow-green-900/30 text-lg uppercase">СТАРТ</button>
             <button id="btn-pause" onclick="togglePause()" class="flex-1 bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-black py-4 rounded-2xl tracking-wide transition-all hidden text-lg uppercase">ПАУЗА</button>
@@ -179,21 +168,15 @@
                 <p id="modal-instructions-label" class="text-xs text-zinc-400 font-black uppercase mb-2">Як користуватись</p>
                 <ul id="modal-instructions-text" class="text-sm text-zinc-300 space-y-2 leading-relaxed list-disc list-inside">
                     <li><strong>Таймер:</strong> задайте кількість раундів, тривалість, відпочинок і підготовку. Поля "Рух" і "Вибух" – для інтервального режиму (0 і 0 – звичайний бій).</li>
-                    <li><strong>Дрил:</strong> увімкніть перемикач – під час раундів почнуть лунати комбінації. Оберіть <em>тип</em> (Атака, Захист, Контратака, Зустрічна), <em>інтенсивність</em> (час між повтореннями) і <em>кількість повторів</em> для кожної комбінації.</li>
-                    <li><strong>Як працює дрил:</strong> голос озвучує комбінацію цифрами (наприклад, «1, 2b, 3»), потім свисток – виконуйте. Через заданий інтервал лунає наступний свисток – виконуєте ще раз ту саму комбінацію. Після зазначеної кількості повторів – випадкова нова комбінація.</li>
-                    <li><strong>Вільний режим:</strong> вимикає голос, залишаються лише свистки – ви самі обираєте рухи.</li>
+                    <li><strong>Дрил:</strong> увімкніть перемикач – під час раундів почнуть лунати комбінації. Оберіть <em>тип</em>, <em>інтенсивність</em> (час між повтореннями) і <em>кількість повторів</em> для кожної комбінації.</li>
+                    <li><strong>Як працює дрил:</strong> голос озвучує комбінацію українською (наприклад, «один, два бі, три»), потім свисток – виконуйте. Через заданий інтервал – наступний свисток (повторюєте ту ж комбінацію). Після заданої кількості повторів – нова випадкова комбінація.</li>
+                    <li><strong>Вільний режим:</strong> вимикає голос, залишаються лише свистки.</li>
                     <li><strong>Позначення ударів (цифри):</strong><br>
-                        1 – лівий джеб (Jab)<br>
-                        2 – правий крос (Cross)<br>
-                        3 – лівий хук (Hook left)<br>
-                        4 – правий хук (Hook right)<br>
-                        5 – лівий аперкот (Uppercut left)<br>
-                        6 – правий аперкот (Uppercut right)<br>
-                        7 – правий оверхенд (Overhand right)<br>
-                        8 – лівий оверхенд (Overhand left)<br>
-                        Якщо після цифри стоїть <strong>b</strong> (наприклад, 2b) – удар у корпус.
+                        1 – лівий джеб, 2 – правий крос, 3 – лівий хук, 4 – правий хук,<br>
+                        5 – лівий аперкот, 6 – правий аперкот, 7 – правий оверхенд, 8 – лівий оверхенд.<br>
+                        <strong>b</strong> після цифри (наприклад, 2b) – удар у корпус.
                     </li>
-                    <li>Кнопка <strong>ПАУЗА</strong> зупиняє і таймер, і дрил; продовження відновлює з того ж місця.</li>
+                    <li><strong>ПАУЗА</strong> зупиняє і таймер, і дрил; продовження відновлює з того ж місця.</li>
                     <li><strong>⤢</strong> – повноекранний режим (рекомендуємо вимкнути блокування повороту).</li>
                 </ul>
             </div>
@@ -207,7 +190,6 @@
         </div>
     </div>
 
-    <!-- Аудіо-плеєр -->
     <audio id="music-player" loop class="hidden">
         <source src="my-training-mix.mp3" type="audio/mpeg">
     </audio>
@@ -224,11 +206,11 @@
                 instructionsLabel: "Як користуватись",
                 instructions: [
                     "Таймер: задайте кількість раундів, тривалість, відпочинок і підготовку. Поля \"Рух\" і \"Вибух\" – для інтервального режиму (0 і 0 – звичайний бій).",
-                    "Дрил: увімкніть перемикач – під час раундів почнуть лунати комбінації. Оберіть тип (Атака, Захист, Контратака, Зустрічна), інтенсивність (час між повтореннями) і кількість повторів для кожної комбінації.",
-                    "Як працює дрил: голос озвучує комбінацію цифрами (наприклад, «1, 2b, 3»), потім свисток – виконуйте. Через заданий інтервал лунає наступний свисток – виконуєте ще раз ту саму комбінацію. Після зазначеної кількості повторів – випадкова нова комбінація.",
-                    "Вільний режим: вимикає голос, залишаються лише свистки – ви самі обираєте рухи.",
-                    "Позначення ударів (цифри): 1 – лівий джеб, 2 – правий крос, 3 – лівий хук, 4 – правий хук, 5 – лівий аперкот, 6 – правий аперкот, 7 – правий оверхенд, 8 – лівий оверхенд. Якщо після цифри стоїть b (наприклад, 2b) – удар у корпус.",
-                    "Кнопка ПАУЗА зупиняє і таймер, і дрил; продовження відновлює з того ж місця.",
+                    "Дрил: увімкніть перемикач – під час раундів почнуть лунати комбінації. Оберіть тип, інтенсивність (час між повтореннями) і кількість повторів для кожної комбінації.",
+                    "Як працює дрил: голос озвучує комбінацію українською (наприклад, «один, два бі, три»), потім свисток – виконуйте. Через заданий інтервал – наступний свисток (повторюєте ту ж комбінацію). Після заданої кількості повторів – нова випадкова комбінація.",
+                    "Вільний режим: вимикає голос, залишаються лише свистки.",
+                    "Позначення ударів (цифри): 1 – лівий джеб, 2 – правий крос, 3 – лівий хук, 4 – правий хук, 5 – лівий аперкот, 6 – правий аперкот, 7 – правий оверхенд, 8 – лівий оверхенд. b після цифри – удар у корпус.",
+                    "ПАУЗА зупиняє і таймер, і дрил; продовження відновлює з того ж місця.",
                     "⤢ – повноекранний режим (рекомендуємо вимкнути блокування повороту)."
                 ],
                 footer: "Box & Run Interval Timer",
@@ -280,7 +262,65 @@
                 }
             },
             en: {
-                // (аналогічно англійською – тут для стислості опущено, але в повному коді має бути)
+                modalTitle: "Settings",
+                langLabel: "Language",
+                instructionsLabel: "How to use",
+                instructions: [
+                    "Timer: set rounds, duration, rest and prep. 'Move' and 'Burst' – for interval mode (0 and 0 – normal fight).",
+                    "Drill: turn on the switch – combos will be announced during rounds. Choose type, intensity (time between reps) and number of reps for each combo.",
+                    "How drill works: voice announces combo as numbers (e.g., 'one, two body, three'), then whistle – perform. After interval, next whistle – repeat same combo. After set reps – new random combo.",
+                    "Free mode: no voice, only whistles.",
+                    "Punch notation (numbers): 1 – left jab, 2 – right cross, 3 – left hook, 4 – right hook, 5 – left uppercut, 6 – right uppercut, 7 – right overhand, 8 – left overhand. 'b' after number – body punch.",
+                    "PAUSE stops both timer and drill; resume continues from where left off.",
+                    "⤢ – fullscreen mode (recommend to turn off rotation lock)."
+                ],
+                footer: "Box & Run Interval Timer",
+                authorLabel: "Author",
+                settingsLabels: {
+                    rounds: "Rounds",
+                    roundTime: "Round (sec)",
+                    move: "🏃‍♂️ Move (sec)",
+                    burst: "⚡ Burst (sec)",
+                    rest: "Rest (sec)",
+                    prepare: "Prep before start (sec)"
+                },
+                buttons: {
+                    start: "START",
+                    pause: "PAUSE",
+                    resume: "RESUME",
+                    stop: "STOP",
+                    startOver: "START OVER"
+                },
+                status: {
+                    initialTitle: "Gong Awaits",
+                    initialSubtitle: "Set up and tap Start",
+                    prepareTitle: "GET READY",
+                    prepareSubNormal: "Getting ready to FIGHT",
+                    prepareSubInterval: "Getting ready to MOVE",
+                    concentration: "Focus up",
+                    go: "GO!",
+                    roundTitle: (cur, total) => `Round ${cur} / ${total}`,
+                    normalPhase: "🥊 FIGHT 🥊",
+                    burstPhase: "⚡ BURST (FAST) ⚡",
+                    movePhase: "🏃‍♂️ MOVE (EASY) 🏃‍♂️",
+                    roundEndsIn: (time) => `Round ends in: ${time}`,
+                    restTitle: "REST",
+                    restSubtitle: (next) => `Get ready for round ${next}`,
+                    breathe: "Catch your breath",
+                    finishedTitle: "🏆 FINISHED 🏆",
+                    finishedSubtitle: "Workout complete!",
+                    greatJob: "Great work!",
+                    stoppedTitle: "STOPPED",
+                    stoppedSubtitle: "Workout interrupted",
+                    setupPrompt: "Set up and tap Start",
+                    pausedLabel: "⏸ PAUSED"
+                },
+                drillLabels: {
+                    attack: "⚔️ Attack",
+                    defense: "🛡️ Defense",
+                    counter: "💥 Counter",
+                    meeting: "🤝 Meeting"
+                }
             }
         };
 
@@ -325,7 +365,6 @@
                 enBtn.className = "flex-1 py-2 rounded-xl font-bold bg-blue-600 text-white";
                 ukBtn.className = "flex-1 py-2 rounded-xl font-bold bg-zinc-800 text-zinc-300";
             }
-            // Оновити випадаючий список дрилів
             const drillSelect = document.getElementById('drill-type');
             const drillLabels = t.drillLabels;
             for (let option of drillSelect.options) {
@@ -396,8 +435,7 @@
             }
         }
 
-        // ==================== ДРИЛ (НОВА ЛОГІКА – ОЗВУЧУЄМО ЦИФРИ) ====================
-        // Комбінації тепер використовують цифри 1-8 та b (корпус)
+        // ==================== ДРИЛ (ОЗВУЧУЄМО УКРАЇНСЬКОЮ) ====================
         const DRILLS = {
             attack: [
                 "1, 2",
@@ -432,9 +470,68 @@
             ]
         };
 
-        // Функція, яка повертає оригінальний рядок комбінації (без перетворення на назви)
+        // Функція для перетворення комбінації на голосовий текст українською
+        function comboToSpeechUA(combo) {
+            // Замінюємо цифри на слова
+            const numMap = {
+                '1': 'один',
+                '2': 'два',
+                '3': 'три',
+                '4': 'чотири',
+                '5': "п'ять",
+                '6': 'шість',
+                '7': 'сім',
+                '8': 'вісім'
+            };
+            // Розбиваємо на частини (розділені комами)
+            const parts = combo.split(',').map(s => s.trim());
+            const spoken = parts.map(p => {
+                let body = false;
+                let num = p;
+                if (p.endsWith('b')) {
+                    body = true;
+                    num = p.slice(0, -1);
+                }
+                let word = numMap[num] || num;
+                if (body) word += ' бі';
+                return word;
+            });
+            return spoken.join(', ');
+        }
+
+        // Функція для англійської – просто цифри або назви
+        function comboToSpeechEN(combo) {
+            const numMap = {
+                '1': 'one',
+                '2': 'two',
+                '3': 'three',
+                '4': 'four',
+                '5': 'five',
+                '6': 'six',
+                '7': 'seven',
+                '8': 'eight'
+            };
+            const parts = combo.split(',').map(s => s.trim());
+            const spoken = parts.map(p => {
+                let body = false;
+                let num = p;
+                if (p.endsWith('b')) {
+                    body = true;
+                    num = p.slice(0, -1);
+                }
+                let word = numMap[num] || num;
+                if (body) word += ' body';
+                return word;
+            });
+            return spoken.join(', ');
+        }
+
         function comboToSpeech(combo) {
-            return combo; // просто повертаємо рядок як є
+            if (currentLang === 'uk') {
+                return comboToSpeechUA(combo);
+            } else {
+                return comboToSpeechEN(combo);
+            }
         }
 
         let drillEnabled = false;
@@ -444,7 +541,6 @@
         let drillCurrentCombo = '';
         let drillRepetitions = 3;
         let drillRepetitionCount = 0;
-        let drillPauseBeforeNext = false;
 
         function toggleDrill() {
             drillEnabled = !drillEnabled;
@@ -495,8 +591,8 @@
             drillCurrentCombo = combos[Math.floor(Math.random() * combos.length)];
             drillRepetitions = parseInt(document.getElementById('input-repeats').value) || 3;
             if (!drillFree) {
-                // Озвучуємо саме цифри
-                speak(drillCurrentCombo);
+                const speech = comboToSpeech(drillCurrentCombo);
+                speak(speech);
             }
         }
 
@@ -522,7 +618,6 @@
                 if (drillRepetitionCount < drillRepetitions) {
                     scheduleNextDrill();
                 } else {
-                    // завершили повтори – перехід до наступної комбінації через паузу
                     setTimeout(() => {
                         if (state.phase === 'ROUND' && !state.isPaused && drillEnabled) {
                             pickNewCombo();
